@@ -1,24 +1,49 @@
-import { IStorage } from "./types";
-import { User, Student, Job, Application, InsertUser, InsertStudent, InsertJob } from "@shared/schema";
-import session from "express-session";
+import { 
+  User, InsertUser, 
+  Job, InsertJob,
+  Application, InsertApplication 
+} from "@shared/schema";
 import createMemoryStore from "memorystore";
+import session from "express-session";
 
 const MemoryStore = createMemoryStore(session);
 
+export interface IStorage {
+  // User operations
+  getUser(id: number): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+
+  // Job operations
+  createJob(job: InsertJob): Promise<Job>;
+  getJobs(): Promise<Job[]>;
+  getJob(id: number): Promise<Job | undefined>;
+
+  // Application operations
+  createApplication(application: InsertApplication): Promise<Application>;
+  getApplicationsByUser(userId: number): Promise<Application[]>;
+  getApplicationsByJob(jobId: number): Promise<Application[]>;
+  updateApplicationStatus(id: number, status: "pending" | "accepted" | "rejected"): Promise<Application>;
+
+  sessionStore: session.Store;
+}
+
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
-  private students: Map<number, Student>;
   private jobs: Map<number, Job>;
   private applications: Map<number, Application>;
-  sessionStore: session.Store;
-  currentId: number;
+  private currentUserId: number;
+  private currentJobId: number;
+  private currentApplicationId: number;
+  readonly sessionStore: session.Store;
 
   constructor() {
     this.users = new Map();
-    this.students = new Map();
     this.jobs = new Map();
     this.applications = new Map();
-    this.currentId = 1;
+    this.currentUserId = 1;
+    this.currentJobId = 1;
+    this.currentApplicationId = 1;
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000,
     });
@@ -35,64 +60,60 @@ export class MemStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentId++;
+    const id = this.currentUserId++;
     const user: User = { ...insertUser, id };
     this.users.set(id, user);
     return user;
   }
 
-  async getStudent(userId: number): Promise<Student | undefined> {
-    return Array.from(this.students.values()).find(
-      (student) => student.userId === userId,
-    );
-  }
-
-  async createStudent(userId: number, data: InsertStudent): Promise<Student> {
-    const id = this.currentId++;
-    const student: Student = { ...data, id, userId };
-    this.students.set(id, student);
-    return student;
+  async createJob(insertJob: InsertJob): Promise<Job> {
+    const id = this.currentJobId++;
+    const job: Job = { ...insertJob, id, createdAt: new Date() };
+    this.jobs.set(id, job);
+    return job;
   }
 
   async getJobs(): Promise<Job[]> {
     return Array.from(this.jobs.values());
   }
 
-  async createJob(data: InsertJob): Promise<Job> {
-    const id = this.currentId++;
-    const job: Job = { ...data, id, createdAt: new Date() };
-    this.jobs.set(id, job);
-    return job;
+  async getJob(id: number): Promise<Job | undefined> {
+    return this.jobs.get(id);
   }
 
-  async getApplications(studentId?: number): Promise<Application[]> {
-    const apps = Array.from(this.applications.values());
-    return studentId ? apps.filter(app => app.studentId === studentId) : apps;
-  }
-
-  async createApplication(studentId: number, jobId: number): Promise<Application> {
-    const id = this.currentId++;
-    const application: Application = {
+  async createApplication(insertApplication: InsertApplication): Promise<Application> {
+    const id = this.currentApplicationId++;
+    const application: Application = { 
+      ...insertApplication, 
       id,
-      studentId,
-      jobId,
-      status: "pending",
-      appliedAt: new Date()
+      appliedAt: new Date(),
+      jobId: insertApplication.jobId || null,
+      userId: insertApplication.userId || null
     };
     this.applications.set(id, application);
     return application;
   }
 
-  async updateApplicationStatus(
-    id: number, 
-    status: "accepted" | "rejected"
-  ): Promise<Application> {
+  async getApplicationsByUser(userId: number): Promise<Application[]> {
+    return Array.from(this.applications.values()).filter(
+      (app) => app.userId === userId
+    );
+  }
+
+  async getApplicationsByJob(jobId: number): Promise<Application[]> {
+    return Array.from(this.applications.values()).filter(
+      (app) => app.jobId === jobId
+    );
+  }
+
+  async updateApplicationStatus(id: number, status: "pending" | "accepted" | "rejected"): Promise<Application> {
     const application = this.applications.get(id);
-    if (!application) throw new Error("Application not found");
-    
-    const updated = { ...application, status };
-    this.applications.set(id, updated);
-    return updated;
+    if (!application) {
+      throw new Error("Application not found");
+    }
+    const updatedApplication: Application = { ...application, status };
+    this.applications.set(id, updatedApplication);
+    return updatedApplication;
   }
 }
 
