@@ -7,7 +7,7 @@ export function ProtectedRoute({
   component: Component,
 }: {
   path: string;
-  component: (props: { user: NonNullable<ReturnType<typeof useAuth>["user"]> }) => React.JSX.Element;
+  component: React.ComponentType<{ user: NonNullable<ReturnType<typeof useAuth>["user"]> }>;
 }) {
   const { user, isLoading } = useAuth();
 

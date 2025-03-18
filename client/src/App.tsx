@@ -8,6 +8,11 @@ import { ProtectedRoute } from "./lib/protected-route";
 import AuthPage from "@/pages/auth-page";
 import StudentDashboard from "@/pages/dashboard/student";
 import AdminDashboard from "@/pages/dashboard/admin";
+import PersonalDetails from "@/pages/personal-details";
+import AcademicDetails from "@/pages/academic-details";
+import Opportunities from "@/pages/opportunities";
+import Applications from "@/pages/applications";
+import ManageJobs from "@/pages/manage-jobs";
 
 function Router() {
   return (
@@ -16,6 +21,11 @@ function Router() {
         user?.role === "admin" ? <AdminDashboard /> : <StudentDashboard />
       )} />
       <Route path="/auth" component={AuthPage} />
+      <ProtectedRoute path="/personal-details" component={PersonalDetails} />
+      <ProtectedRoute path="/academic-details" component={AcademicDetails} />
+      <ProtectedRoute path="/opportunities" component={Opportunities} />
+      <ProtectedRoute path="/applications" component={Applications} />
+      <ProtectedRoute path="/manage-jobs" component={ManageJobs} />
       <Route component={NotFound} />
     </Switch>
   );
