@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Upload, Building2, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Job, Application } from "@shared/schema";
+import { Navbar } from "@/components/nav/navbar";
 
 export default function StudentDashboard() {
   const { user, logoutMutation } = useAuth();
@@ -73,6 +74,7 @@ export default function StudentDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Navbar />
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="flex justify-between items-center mb-8">
           <div>

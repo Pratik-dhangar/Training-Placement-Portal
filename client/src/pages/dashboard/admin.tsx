@@ -12,6 +12,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { insertJobSchema, type Job, type Application, type InsertJob } from "@shared/schema";
 import { Loader2, Building2, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Navbar } from "@/components/nav/navbar";
 
 export default function AdminDashboard() {
   const { user, logoutMutation } = useAuth();
@@ -83,6 +84,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Navbar />
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="flex justify-between items-center mb-8">
           <div>
