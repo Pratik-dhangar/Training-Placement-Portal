@@ -4,6 +4,7 @@ import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import multer from "multer";
 import path from "path";
+import fs from "fs";
 
 const upload = multer({
   dest: "uploads/",
@@ -46,6 +47,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/jobs/:id", async (req, res, next) => {
+    try {
+      if (!req.user || req.user.role !== "admin") {
+        return res.status(403).send("Unauthorized");
+      }
+      await storage.deleteJob(parseInt(req.params.id));
+      res.sendStatus(200);
+    } catch (err) {
+      next(err);
+    }
+  });
+
   // Applications API
   app.post("/api/applications", upload.single("resume"), async (req, res, next) => {
     try {
@@ -55,15 +68,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.file) {
         return res.status(400).send("Resume is required");
       }
-      
+
       const application = await storage.createApplication({
         userId: req.user.id,
         jobId: parseInt(req.body.jobId),
         status: "pending",
         resumePath: req.file.path,
       });
-      
+
       res.status(201).json(application);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.get("/api/applications/resume/:filename", async (req, res, next) => {
+    try {
+      if (!req.user || req.user.role !== "admin") {
+        return res.status(403).send("Unauthorized");
+      }
+      const filePath = path.join("uploads", req.params.filename);
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).send("Resume not found");
+      }
+      res.download(filePath);
     } catch (err) {
       next(err);
     }

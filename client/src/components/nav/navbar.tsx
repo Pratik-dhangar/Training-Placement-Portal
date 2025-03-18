@@ -16,7 +16,8 @@ export function Navbar() {
 
   const adminLinks = [
     { href: "/", label: "Dashboard", icon: User },
-    { href: "/manage-jobs", label: "Manage Jobs", icon: Briefcase },
+    { href: "/admin/post-job", label: "Post New Job", icon: Briefcase },
+    { href: "/admin/review-jobs", label: "Review Jobs", icon: FileText },
   ];
 
   const links = user?.role === "admin" ? adminLinks : studentLinks;

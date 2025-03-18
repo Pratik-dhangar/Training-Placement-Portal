@@ -18,6 +18,7 @@ export interface IStorage {
   createJob(job: InsertJob): Promise<Job>;
   getJobs(): Promise<Job[]>;
   getJob(id: number): Promise<Job | undefined>;
+  deleteJob(id: number): Promise<void>;
 
   // Application operations
   createApplication(application: InsertApplication): Promise<Application>;
@@ -79,6 +80,14 @@ export class MemStorage implements IStorage {
 
   async getJob(id: number): Promise<Job | undefined> {
     return this.jobs.get(id);
+  }
+
+  async deleteJob(id: number): Promise<void> {
+    this.jobs.delete(id);
+    // Delete associated applications
+    this.applications = new Map(
+      Array.from(this.applications.entries()).filter(([, app]) => app.jobId !== id)
+    );
   }
 
   async createApplication(insertApplication: InsertApplication): Promise<Application> {
