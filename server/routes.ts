@@ -1,18 +1,19 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
-import { storage } from "./storage";
+import { storage } from "./dbStorage";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
 
+// resume upload
 const upload = multer({
   dest: "uploads/",
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB limit
   },
   fileFilter: (_req, file, cb) => {
-    const allowedTypes = [".pdf", ".doc", ".docx"];
+    const allowedTypes = [".pdf", ".doc", ".docx", ".jpeg"];
     const ext = path.extname(file.originalname).toLowerCase();
     if (allowedTypes.includes(ext)) {
       cb(null, true);
@@ -82,16 +83,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/applications/resume/:filename", async (req, res, next) => {
+  // Get all applications (for admin dashboard)
+  app.get("/api/applications", async (req, res, next) => {
     try {
       if (!req.user || req.user.role !== "admin") {
         return res.status(403).send("Unauthorized");
       }
-      const filePath = path.join("uploads", req.params.filename);
-      if (!fs.existsSync(filePath)) {
-        return res.status(404).send("Resume not found");
-      }
-      res.download(filePath);
+      
+      // Get all jobs
+      const jobs = await storage.getJobs();
+      
+      // Get applications for each job
+      const applicationsByJob = await Promise.all(
+        jobs.map(async (job) => {
+          const applications = await storage.getApplicationsByJob(job.id);
+          return {
+            job,
+            applications
+          };
+        })
+      );
+      
+      res.json(applicationsByJob);
     } catch (err) {
       next(err);
     }
@@ -116,6 +129,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const applications = await storage.getApplicationsByJob(parseInt(req.params.jobId));
       res.json(applications);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.get("/api/applications/resume/:filename", async (req, res, next) => {
+    try {
+      if (!req.user || req.user.role !== "admin") {
+        return res.status(403).send("Unauthorized");
+      }
+      const filePath = path.join("uploads", req.params.filename);
+      
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).send("Resume not found");
+      }
+      
+      // Set appropriate headers for preview based on file type
+      const ext = path.extname(filePath).toLowerCase();
+      if (ext === '.pdf') {
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'inline; filename="resume.pdf"');
+      } else {
+        // For other file types, use download (since browser can't preview Word docs easily)
+        return res.download(filePath);
+      }
+      
+      // Stream the file
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Get application details by id - place this after other specific application routes
+  app.get("/api/applications/:id", async (req, res, next) => {
+    try {
+      if (!req.user) {
+        return res.status(401).send("Unauthorized");
+      }
+      
+      const applicationId = parseInt(req.params.id);
+      const application = await storage.getApplicationWithDetails(applicationId);
+      
+      if (!application) {
+        return res.status(404).send("Application not found");
+      }
+      
+      // Check if user is authorized to view this application
+      if (req.user.role !== "admin" && application.userId !== req.user.id) {
+        return res.status(403).send("Unauthorized");
+      }
+      
+      res.json(application);
     } catch (err) {
       next(err);
     }

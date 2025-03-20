@@ -4,7 +4,7 @@ import { Express } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
-import { storage } from "./storage";
+import { storage } from "./dbStorage";
 import { User as SelectUser } from "@shared/schema";
 
 declare global {
@@ -67,22 +67,50 @@ export function setupAuth(app: Express) {
 
   app.post("/api/register", async (req, res, next) => {
     try {
-      const existingUser = await storage.getUserByUsername(req.body.username);
-      if (existingUser) {
-        return res.status(400).send("Username already exists");
+      const { username, password, role, fullName, email, phone } = req.body;
+
+      // Validate required fields
+      if (!username || !password || !role || !fullName || !email || !phone) {
+        return res.status(400).json({ 
+          message: "All fields are required: username, password, role, fullName, email, phone" 
+        });
       }
 
+      // Validate role
+      if (!["student", "admin"].includes(role)) {
+        return res.status(400).json({ 
+          message: "Role must be either 'student' or 'admin'" 
+        });
+      }
+
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+
+      const hashedPassword = await hashPassword(password);
       const user = await storage.createUser({
-        ...req.body,
-        password: await hashPassword(req.body.password),
+        username,
+        password: hashedPassword,
+        role,
+        fullName,
+        email,
+        phone
       });
 
       req.login(user, (err) => {
         if (err) return next(err);
-        res.status(201).json(user);
+        // Don't send password in response
+        const { password: _, ...userWithoutPassword } = user;
+        res.status(201).json(userWithoutPassword);
       });
     } catch (err) {
-      next(err);
+      console.error('Registration error:', err);
+      if (err instanceof Error) {
+        res.status(500).json({ message: err.message });
+      } else {
+        res.status(500).json({ message: "An unexpected error occurred" });
+      }
     }
   });
 
