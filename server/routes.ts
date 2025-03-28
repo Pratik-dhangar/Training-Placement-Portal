@@ -90,20 +90,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).send("Unauthorized");
       }
       
-      // Get all jobs
-      const jobs = await storage.getJobs();
+      const applications = await storage.getAllApplications();
       
-      // Get applications for each job
-      const applicationsByJob = await Promise.all(
-        jobs.map(async (job) => {
-          const applications = await storage.getApplicationsByJob(job.id);
-          return {
-            job,
-            applications
-          };
-        })
-      );
+      // Group applications by job
+      const jobMap = new Map();
+      applications.forEach(app => {
+        if (!jobMap.has(app.jobId)) {
+          jobMap.set(app.jobId, {
+            job: app.job,
+            applications: []
+          });
+        }
+        jobMap.get(app.jobId).applications.push({
+          ...app,
+          job: undefined // Remove duplicated job data from each application
+        });
+      });
       
+      const applicationsByJob = Array.from(jobMap.values());
       res.json(applicationsByJob);
     } catch (err) {
       next(err);
@@ -125,11 +129,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/applications/job/:jobId", async (req, res, next) => {
     try {
       if (!req.user || req.user.role !== "admin") {
-        return res.status(403).send("Unauthorized");
+        return res.status(403).json({ message: "Unauthorized" });
       }
-      const applications = await storage.getApplicationsByJob(parseInt(req.params.jobId));
+      
+      const jobIdParam = req.params.jobId;
+      
+      
+      // Validate and parse jobId
+      let jobId: number;
+      try {
+        jobId = parseInt(jobIdParam);
+        if (isNaN(jobId)) {
+          throw new Error("Invalid job ID");
+        }
+      } catch (error) {
+        
+        return res.status(400).json({ message: "Invalid job ID" });
+      }
+      
+     
+      const applications = await storage.getApplicationsByJob(jobId);
+      
+      
       res.json(applications);
     } catch (err) {
+      
       next(err);
     }
   });

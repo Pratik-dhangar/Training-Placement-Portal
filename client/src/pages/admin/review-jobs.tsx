@@ -6,9 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Loader2, Building2, User, Download, Eye, Pencil, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import type { Job, Application } from "@shared/schema";
+import type { Job, Application, User as UserType } from "@shared/schema";
 import { Navbar } from "@/components/nav/navbar";
 import { useState } from "react";
+
+// Extended Application type with user information
+interface ApplicationWithUser extends Application {
+  user?: UserType;
+}
 
 export default function ReviewJobs() {
   const { user } = useAuth();
@@ -19,8 +24,23 @@ export default function ReviewJobs() {
     queryKey: ["/api/jobs"],
   });
 
-  const { data: applications } = useQuery<Application[]>({
+  const { data: applications, isLoading: applicationsLoading, error: applicationsError } = useQuery<ApplicationWithUser[]>({
     queryKey: ["/api/applications/job", selectedJobId],
+    queryFn: async () => {
+      if (!selectedJobId) {
+        return [];
+      }
+      const response = await fetch(`/api/applications/job/${selectedJobId}`, {
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to fetch applications: ${response.statusText}`);
+      }
+      
+      return response.json();
+    },
     enabled: selectedJobId !== null,
   });
 
@@ -117,53 +137,72 @@ export default function ReviewJobs() {
                           <DialogTitle>Applications for {job.title}</DialogTitle>
                         </DialogHeader>
                         <div className="mt-4 space-y-4">
-                          {applications?.map((application) => (
-                            <div
-                              key={application.id}
-                              className="flex items-center justify-between p-4 border rounded-lg"
-                            >
-                              <div className="flex items-center gap-2">
-                                <User className="h-4 w-4" />
-                                <span>Application #{application.id}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleDownloadResume(application.resumePath)}
-                                >
-                                  <Download className="h-4 w-4 mr-2" />
-                                  Download Resume
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() =>
-                                    updateApplicationStatusMutation.mutate({
-                                      applicationId: application.id,
-                                      status: "accepted",
-                                    })
-                                  }
-                                  disabled={application.status !== "pending"}
-                                >
-                                  Accept
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() =>
-                                    updateApplicationStatusMutation.mutate({
-                                      applicationId: application.id,
-                                      status: "rejected",
-                                    })
-                                  }
-                                  disabled={application.status !== "pending"}
-                                >
-                                  Reject
-                                </Button>
-                              </div>
+                          {applicationsLoading ? (
+                            <div className="flex justify-center p-4">
+                              <Loader2 className="h-6 w-6 animate-spin text-border" />
                             </div>
-                          ))}
+                          ) : applicationsError ? (
+                            <div className="p-4 text-red-500 text-center">
+                              Error loading applications: {applicationsError.toString()}
+                            </div>
+                          ) : applications && applications.length > 0 ? (
+                            applications.map((application) => (
+                              <div
+                                key={application.id}
+                                className="flex items-center justify-between p-4 border rounded-lg"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <User className="h-4 w-4" />
+                                  <span>Application #{application.id}</span>
+                                  {application.user && (
+                                    <span className="ml-2 font-medium">
+                                      {application.user.fullName}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleDownloadResume(application.resumePath)}
+                                  >
+                                    <Download className="h-4 w-4 mr-2" />
+                                    Download Resume
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() =>
+                                      updateApplicationStatusMutation.mutate({
+                                        applicationId: application.id,
+                                        status: "accepted",
+                                      })
+                                    }
+                                    disabled={application.status !== "pending"}
+                                  >
+                                    Accept
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() =>
+                                      updateApplicationStatusMutation.mutate({
+                                        applicationId: application.id,
+                                        status: "rejected",
+                                      })
+                                    }
+                                    disabled={application.status !== "pending"}
+                                  >
+                                    Reject
+                                  </Button>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="p-4 text-center text-gray-500">
+                              No applications found for this job
+                            </div>
+                          )}
                         </div>
                       </DialogContent>
                     </Dialog>

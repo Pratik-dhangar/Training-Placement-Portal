@@ -1,7 +1,7 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertJobSchema, type Job, type Application } from "@shared/schema";
+import { insertJobSchema, type Job, type Application, type User } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -9,6 +9,16 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useEffect } from "react";
+
+interface ApplicationWithUser extends Application {
+  user: User;
+}
+
+interface JobWithApplications {
+  job: Job;
+  applications: ApplicationWithUser[];
+}
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -17,8 +27,8 @@ export default function AdminDashboard() {
     queryKey: ["/api/jobs"],
   });
 
-  const { data: applications } = useQuery<Application[]>({
-    queryKey: ["/api/admin/applications"],
+  const { data: applicationsByJob, isLoading: applicationsLoading, error: applicationsError } = useQuery<JobWithApplications[]>({
+    queryKey: ["/api/applications"],
   });
 
   const form = useForm({
@@ -35,7 +45,7 @@ export default function AdminDashboard() {
 
   const jobMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/admin/jobs", data);
+      const res = await apiRequest("POST", "/api/jobs", data);
       return await res.json();
     },
     onSuccess: () => {
@@ -56,13 +66,14 @@ export default function AdminDashboard() {
       status: "accepted" | "rejected";
     }) => {
       const res = await apiRequest(
-        "POST",
-        `/api/admin/applications/${id}/${status}`
+        "PATCH",
+        `/api/applications/${id}/status`,
+        { status }
       );
       return await res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/applications"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/applications"] });
       toast({
         title: "Application status updated",
       });
@@ -158,50 +169,80 @@ export default function AdminDashboard() {
             <CardTitle>Applications</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4">
-              {applications?.map((application) => {
-                const job = jobs?.find((j) => j.id === application.jobId);
-                return (
-                  <Card key={application.id}>
-                    <CardContent className="pt-6">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-semibold">{job?.title}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            Status: {application.status}
-                          </p>
-                        </div>
-                        <div className="space-x-2">
-                          <Button
-                            onClick={() =>
-                              statusMutation.mutate({
-                                id: application.id,
-                                status: "accepted",
-                              })
-                            }
-                            disabled={application.status !== "pending"}
-                          >
-                            Accept
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            onClick={() =>
-                              statusMutation.mutate({
-                                id: application.id,
-                                status: "rejected",
-                              })
-                            }
-                            disabled={application.status !== "pending"}
-                          >
-                            Reject
-                          </Button>
-                        </div>
+            {applicationsLoading ? (
+              <div>Loading applications...</div>
+            ) : applicationsError ? (
+              <div>Error loading applications: {applicationsError.toString()}</div>
+            ) : !applicationsByJob || applicationsByJob.length === 0 ? (
+              <div>No applications found</div>
+            ) : (
+              <div className="space-y-6">
+                {applicationsByJob.map((jobData) => (
+                  <div key={jobData.job.id} className="space-y-4">
+                    <h3 className="text-lg font-semibold border-b pb-2">
+                      {jobData.job.title} - {jobData.job.company}
+                    </h3>
+                    
+                    {jobData.applications.length === 0 ? (
+                      <div className="text-sm text-muted-foreground">No applications for this job</div>
+                    ) : (
+                      <div className="grid gap-4">
+                        {jobData.applications.map((application) => (
+                          <Card key={application.id}>
+                            <CardContent className="pt-6">
+                              <div className="flex justify-between items-start">
+                                <div className="space-y-2">
+                                  <div className="text-sm text-muted-foreground space-y-1">
+                                    <p>Applicant: {application.user?.fullName || 'Unknown'}</p>
+                                    <p>Email: {application.user?.email || 'Unknown'}</p>
+                                    <p>Phone: {application.user?.phone || 'Unknown'}</p>
+                                    <p>Status: {application.status || 'Unknown'}</p>
+                                  </div>
+                                  {application.resumePath && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => window.open(`/api/applications/resume/${application.resumePath.split('/').pop()}`, '_blank')}
+                                    >
+                                      View Resume
+                                    </Button>
+                                  )}
+                                </div>
+                                <div className="space-x-2">
+                                  <Button
+                                    onClick={() =>
+                                      statusMutation.mutate({
+                                        id: application.id,
+                                        status: "accepted",
+                                      })
+                                    }
+                                    disabled={application.status !== "pending"}
+                                  >
+                                    Accept
+                                  </Button>
+                                  <Button
+                                    variant="destructive"
+                                    onClick={() =>
+                                      statusMutation.mutate({
+                                        id: application.id,
+                                        status: "rejected",
+                                      })
+                                    }
+                                    disabled={application.status !== "pending"}
+                                  >
+                                    Reject
+                                  </Button>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
                       </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

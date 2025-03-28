@@ -30,6 +30,7 @@ export interface IStorage {
   getApplicationsByUser(userId: number): Promise<Application[]>;
   getApplicationsByJob(jobId: number): Promise<(Application & { user: User })[]>;
   getApplicationWithDetails(id: number): Promise<(Application & { user: User; job: Job }) | undefined>;
+  getAllApplications(): Promise<(Application & { user: User; job: Job })[]>;
   updateApplicationStatus(id: number, status: "pending" | "accepted" | "rejected"): Promise<Application>;
 
   sessionStore: session.Store;
@@ -52,7 +53,7 @@ export class DbStorage implements IStorage {
 
     // Test the connection
     this.pool.on('error', (err) => {
-      console.error('Unexpected error on idle client', err);
+      
       process.exit(-1);
     });
 
@@ -67,7 +68,7 @@ export class DbStorage implements IStorage {
       const result = await this.db.select().from(users).where(eq(users.id, id));
       return result[0];
     } catch (error) {
-      console.error('Error in getUser:', error);
+      
       throw error;
     }
   }
@@ -77,7 +78,7 @@ export class DbStorage implements IStorage {
       const result = await this.db.select().from(users).where(eq(users.username, username));
       return result[0];
     } catch (error) {
-      console.error('Error in getUserByUsername:', error);
+      
       throw error;
     }
   }
@@ -87,7 +88,7 @@ export class DbStorage implements IStorage {
       const result = await this.db.insert(users).values(insertUser).returning();
       return result[0];
     } catch (error) {
-      console.error('Error in createUser:', error);
+      
       throw error;
     }
   }
@@ -97,7 +98,7 @@ export class DbStorage implements IStorage {
       const result = await this.db.insert(jobs).values(insertJob).returning();
       return result[0];
     } catch (error) {
-      console.error('Error in createJob:', error);
+      
       throw error;
     }
   }
@@ -106,7 +107,7 @@ export class DbStorage implements IStorage {
     try {
       return await this.db.select().from(jobs);
     } catch (error) {
-      console.error('Error in getJobs:', error);
+     
       throw error;
     }
   }
@@ -116,7 +117,7 @@ export class DbStorage implements IStorage {
       const result = await this.db.select().from(jobs).where(eq(jobs.id, id));
       return result[0];
     } catch (error) {
-      console.error('Error in getJob:', error);
+      
       throw error;
     }
   }
@@ -128,7 +129,7 @@ export class DbStorage implements IStorage {
       // Then delete the job
       await this.db.delete(jobs).where(eq(jobs.id, id));
     } catch (error) {
-      console.error('Error in deleteJob:', error);
+      
       throw error;
     }
   }
@@ -138,7 +139,7 @@ export class DbStorage implements IStorage {
       const result = await this.db.insert(applications).values(insertApplication).returning();
       return result[0];
     } catch (error) {
-      console.error('Error in createApplication:', error);
+      
       throw error;
     }
   }
@@ -147,28 +148,41 @@ export class DbStorage implements IStorage {
     try {
       return await this.db.select().from(applications).where(eq(applications.userId, userId));
     } catch (error) {
-      console.error('Error in getApplicationsByUser:', error);
+     
       throw error;
     }
   }
 
   async getApplicationsByJob(jobId: number): Promise<(Application & { user: User })[]> {
     try {
+      // Safer query approach with explicit field selection
       const result = await this.db
         .select({
-          ...applications,
+          id: applications.id,
+          userId: applications.userId,
+          jobId: applications.jobId,
+          status: applications.status,
+          resumePath: applications.resumePath,
+          appliedAt: applications.appliedAt,
           user: users
         })
         .from(applications)
         .leftJoin(users, eq(applications.userId, users.id))
         .where(eq(applications.jobId, jobId));
       
-      return result.map(app => ({
-        ...app,
-        user: app.user
-      }));
+      // Filter out null users and cast to required type
+      return result
+        .filter(app => app.user !== null)
+        .map(app => ({
+          id: app.id,
+          userId: app.userId,
+          jobId: app.jobId,
+          status: app.status,
+          resumePath: app.resumePath,
+          appliedAt: app.appliedAt,
+          user: app.user as User
+        }));
     } catch (error) {
-      console.error('Error in getApplicationsByJob:', error);
       throw error;
     }
   }
@@ -177,7 +191,12 @@ export class DbStorage implements IStorage {
     try {
       const result = await this.db
         .select({
-          ...applications,
+          id: applications.id,
+          userId: applications.userId,
+          jobId: applications.jobId,
+          status: applications.status,
+          resumePath: applications.resumePath,
+          appliedAt: applications.appliedAt,
           user: users,
           job: jobs
         })
@@ -189,12 +208,51 @@ export class DbStorage implements IStorage {
       if (result.length === 0) return undefined;
       
       return {
-        ...result[0],
-        user: result[0].user,
-        job: result[0].job
+        id: result[0].id,
+        userId: result[0].userId,
+        jobId: result[0].jobId,
+        status: result[0].status,
+        resumePath: result[0].resumePath,
+        appliedAt: result[0].appliedAt,
+        user: result[0].user as User,
+        job: result[0].job as Job
       };
     } catch (error) {
-      console.error('Error in getApplicationWithDetails:', error);
+      throw error;
+    }
+  }
+
+  async getAllApplications(): Promise<(Application & { user: User; job: Job })[]> {
+    try {
+      const result = await this.db
+        .select({
+          id: applications.id,
+          userId: applications.userId,
+          jobId: applications.jobId,
+          status: applications.status,
+          resumePath: applications.resumePath,
+          appliedAt: applications.appliedAt,
+          user: users,
+          job: jobs
+        })
+        .from(applications)
+        .leftJoin(users, eq(applications.userId, users.id))
+        .leftJoin(jobs, eq(applications.jobId, jobs.id));
+        
+      // Filter out null users/jobs and cast to required type
+      return result
+        .filter(app => app.user !== null && app.job !== null)
+        .map(app => ({
+          id: app.id,
+          userId: app.userId,
+          jobId: app.jobId,
+          status: app.status,
+          resumePath: app.resumePath,
+          appliedAt: app.appliedAt,
+          user: app.user as User,
+          job: app.job as Job
+        }));
+    } catch (error) {
       throw error;
     }
   }
@@ -208,7 +266,7 @@ export class DbStorage implements IStorage {
         .returning();
       return result[0];
     } catch (error) {
-      console.error('Error in updateApplicationStatus:', error);
+      
       throw error;
     }
   }
