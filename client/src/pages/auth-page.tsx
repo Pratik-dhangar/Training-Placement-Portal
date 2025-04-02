@@ -45,29 +45,29 @@ export default function AuthPage() {
       className="min-h-screen flex flex-col items-center relative overflow-hidden"
       style={{
         backgroundImage: 'url("/Home.jpg")',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center 10%',
+        backgroundSize: '100% 100%',
+        backgroundPosition: 'center 40%',
         backgroundRepeat: 'no-repeat',
         backgroundAttachment: 'fixed',
       }}
     >
       {/* Semi-transparent overlay to ensure text readability */}
-      <div className="absolute inset-0 bg-black bg-opacity-25"></div>
+      <div className="absolute inset-0 bg-black bg-opacity-20"></div>
       
       {/* Content container */}
       <div className="w-full h-full flex flex-col items-center z-10 relative">
         {/* Main heading at the top center */}
-        <div className="w-full text-center mb-2 pt-8">
-          <h1 className="text-5xl font-bold text-white">
+        <div className="w-full text-center fixed top-0 z-30">
+          <h1 className="text-5xl font-bold font-serif text-white mt-3">
             Training & Placement Portal
           </h1>
         </div>
 
         {/* Content area */}
-        <div className="w-full max-w-7xl flex flex-col items-start px-4 md:px-8 flex-grow">
+        <div className="w-full max-w-7xl flex flex-col items-start px-4 md:px-8 flex-grow pt-28 mt-10">
           {/* Login/Register card on the left */}
-          <div className="w-full md:w-1/3 md:ml-28 mt-10">
-            <Card className="w-full backdrop-blur-lg bg-black/50">
+          <div className="w-full md:w-1/3 md:ml-32 mt-4">
+            <Card className="w-full backdrop-blur-lg bg-black/10">
               <CardHeader>
                 <CardTitle className="text-2xl font-bold text-white">Welcome</CardTitle>
               </CardHeader>
@@ -107,8 +107,8 @@ export default function AuthPage() {
                           )}
                         />
                         <Button
-                          type="submit"
-                          className="w-full bg-white text-black hover:bg-blue-600 hover:text-white transition-colors"
+                           type="submit"
+                          className="w-full bg-[#9f1c33] text-white hover:bg-white hover:text-black transition-colors"
                           disabled={loginMutation.isPending}
                         >
                           {loginMutation.isPending ? "Logging in..." : "Login"}
@@ -202,7 +202,7 @@ export default function AuthPage() {
                         />
                         <Button
                           type="submit"
-                          className="w-full bg-white text-black hover:bg-blue-600 hover:text-white transition-colors"
+                          className="w-full bg-[#9f1c33] text-white hover:bg-white hover:text-black transition-colors"
                           disabled={registerMutation.isPending}
                         >
                           {registerMutation.isPending ? "Registering..." : "Register"}
@@ -216,12 +216,12 @@ export default function AuthPage() {
           </div>
         </div>
         
-        {/* Description text at the bottom */}
-        <div className="max-w-lg text-center my-28">
+        {/* Description text at the bottom
+        <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 max-w-lg text-center z-10">
           <p className="text-lg text-white font-medium">
             Connect with top companies and find your dream job through our comprehensive placement platform.
           </p>
-        </div>
+        </div> */}
       </div>
     </div>
   );

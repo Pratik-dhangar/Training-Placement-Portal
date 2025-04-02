@@ -163,25 +163,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.user || req.user.role !== "admin") {
         return res.status(403).send("Unauthorized");
       }
-      const filePath = path.join("uploads", req.params.filename);
+      
+      // Log the requested filename
+      console.log("Requested resume filename:", req.params.filename);
+      
+      // Ensure we're just using the filename without any path traversal
+      const safeFilename = path.basename(req.params.filename);
+      const filePath = path.join("uploads", safeFilename);
+      
+      // Log the actual file path we're trying to access
+      console.log("Looking for file at path:", filePath);
+      console.log("File exists:", fs.existsSync(filePath));
       
       if (!fs.existsSync(filePath)) {
+        // Check if the uploads directory exists
+        const uploadsExists = fs.existsSync("uploads");
+        console.log("Uploads directory exists:", uploadsExists);
+        
+        // If uploads exists, list files in the directory to help debug
+        if (uploadsExists) {
+          const files = fs.readdirSync("uploads");
+          console.log("Files in uploads directory:", files);
+        }
+        
         return res.status(404).send("Resume not found");
       }
+
+      // For files without extensions, determine the content type by reading the first few bytes
+      const fileBuffer = fs.readFileSync(filePath, { flag: 'r' });
       
-      // Set appropriate headers for preview based on file type
-      const ext = path.extname(filePath).toLowerCase();
-      if (ext === '.pdf') {
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', 'inline; filename="resume.pdf"');
-      } else {
-        // For other file types, use download (since browser can't preview Word docs easily)
-        return res.download(filePath);
+      // Check file signatures (magic numbers) to determine file type
+      let contentType = 'application/octet-stream';
+      let extension = '';
+      
+      // PDF: starts with %PDF (25 50 44 46)
+      if (fileBuffer.length >= 4 && 
+          fileBuffer[0] === 0x25 && 
+          fileBuffer[1] === 0x50 && 
+          fileBuffer[2] === 0x44 && 
+          fileBuffer[3] === 0x46) {
+        contentType = 'application/pdf';
+        extension = '.pdf';
+      }
+      // JPEG: starts with FFD8
+      else if (fileBuffer.length >= 2 && 
+               fileBuffer[0] === 0xFF && 
+               fileBuffer[1] === 0xD8) {
+        contentType = 'image/jpeg';
+        extension = '.jpg';
+      }
+      // DOC: starts with D0CF11E0
+      else if (fileBuffer.length >= 8 && 
+               fileBuffer[0] === 0xD0 && 
+               fileBuffer[1] === 0xCF && 
+               fileBuffer[2] === 0x11 && 
+               fileBuffer[3] === 0xE0) {
+        contentType = 'application/msword';
+        extension = '.doc';
+      }
+      // DOCX: is a zip file starting with PK
+      else if (fileBuffer.length >= 2 && 
+               fileBuffer[0] === 0x50 && 
+               fileBuffer[1] === 0x4B) {
+        contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        extension = '.docx';
       }
       
-      // Stream the file
-      const fileStream = fs.createReadStream(filePath);
-      fileStream.pipe(res);
+      console.log("Detected content type:", contentType);
+      
+      // Set headers for inline viewing
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `inline; filename="resume${extension}"`);
+      
+      // Stream the file for viewing
+      fs.createReadStream(filePath).pipe(res);
     } catch (err) {
       next(err);
     }

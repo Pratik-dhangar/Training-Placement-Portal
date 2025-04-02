@@ -4,7 +4,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Loader2, Building2, User, Download, Eye, Pencil, Trash2 } from "lucide-react";
+import { Loader2, Building2, User, Eye, Pencil, Trash2, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Job, Application, User as UserType } from "@shared/schema";
 import { Navbar } from "@/components/nav/navbar";
@@ -19,6 +19,8 @@ export default function ReviewJobs() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
+  const [resumeDialogOpen, setResumeDialogOpen] = useState(false);
+  const [selectedResumePath, setSelectedResumePath] = useState<string | null>(null);
 
   const { data: jobs, isLoading: jobsLoading } = useQuery<Job[]>({
     queryKey: ["/api/jobs"],
@@ -76,26 +78,17 @@ export default function ReviewJobs() {
       });
     },
   });
-
-  const handleDownloadResume = async (resumePath: string) => {
-    try {
-      const response = await fetch(`/api/applications/resume/${resumePath}`);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = resumePath.split('/').pop() || 'resume';
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to download resume",
-        variant: "destructive",
-      });
+  
+  const handleViewResume = (resumePath: string) => {
+    // Extract just the filename from the path if needed
+    let filename = resumePath;
+    if (resumePath.includes('/') || resumePath.includes('\\')) {
+      const pathParts = resumePath.split(/[\/\\]/);
+      filename = pathParts[pathParts.length - 1];
     }
+    
+    setSelectedResumePath(filename);
+    setResumeDialogOpen(true);
   };
 
   if (jobsLoading || !user) {
@@ -109,6 +102,25 @@ export default function ReviewJobs() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
+      
+      {/* Resume Viewer Dialog */}
+      <Dialog open={resumeDialogOpen} onOpenChange={setResumeDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>Resume Viewer</DialogTitle>
+          </DialogHeader>
+          <div className="w-full h-[70vh]">
+            {selectedResumePath && (
+              <iframe 
+                src={`/api/applications/resume/${selectedResumePath}`}
+                className="w-full h-full border-0"
+                title="Resume Viewer"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+      
       <div className="max-w-7xl mx-auto px-4 py-8">
         <h2 className="text-2xl font-bold mb-6">Review Posted Jobs</h2>
         <div className="space-y-4">
@@ -134,7 +146,14 @@ export default function ReviewJobs() {
                       </DialogTrigger>
                       <DialogContent className="max-w-3xl">
                         <DialogHeader>
-                          <DialogTitle>Applications for {job.title}</DialogTitle>
+                          <DialogTitle>
+                            Applications for {job.title} 
+                            {applications && applications.length > 0 && (
+                              <span className="text-sm font-normal text-gray-500 ml-2">
+                                (Total: {applications.length})
+                              </span>
+                            )}
+                          </DialogTitle>
                         </DialogHeader>
                         <div className="mt-4 space-y-4">
                           {applicationsLoading ? (
@@ -146,14 +165,14 @@ export default function ReviewJobs() {
                               Error loading applications: {applicationsError.toString()}
                             </div>
                           ) : applications && applications.length > 0 ? (
-                            applications.map((application) => (
+                            applications.map((application, index) => (
                               <div
                                 key={application.id}
                                 className="flex items-center justify-between p-4 border rounded-lg"
                               >
                                 <div className="flex items-center gap-2">
                                   <User className="h-4 w-4" />
-                                  <span>Application #{application.id}</span>
+                                  <span>Applicant {index + 1}</span>
                                   {application.user && (
                                     <span className="ml-2 font-medium">
                                       {application.user.fullName}
@@ -164,10 +183,10 @@ export default function ReviewJobs() {
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => handleDownloadResume(application.resumePath)}
+                                    onClick={() => handleViewResume(application.resumePath)}
                                   >
-                                    <Download className="h-4 w-4 mr-2" />
-                                    Download Resume
+                                    <FileText className="h-4 w-4 mr-2" />
+                                    View Resume
                                   </Button>
                                   <Button
                                     variant="outline"
