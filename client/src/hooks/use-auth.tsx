@@ -80,6 +80,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/user"], null);
+      
+      queryClient.invalidateQueries({ queryKey: ["/api/applications"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/applications/user"] });
+      
+      queryClient.invalidateQueries({ queryKey: ["/api/jobs"] });
+      
       toast({
         title: "Logged out successfully",
       });

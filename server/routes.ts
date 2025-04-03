@@ -119,8 +119,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.user) {
         return res.status(401).send("Unauthorized");
       }
+      
+      console.log(`Fetching applications for user ID: ${req.user.id}`);
       const applications = await storage.getApplicationsByUser(req.user.id);
-      res.json(applications);
+      
+      // Add additional user ID check to ensure we only return the current user's applications
+      const filteredApplications = applications.filter(app => app.userId === req.user?.id);
+      console.log(`Found ${filteredApplications.length} applications for user ID: ${req.user.id}`);
+      
+      res.json(filteredApplications);
     } catch (err) {
       next(err);
     }

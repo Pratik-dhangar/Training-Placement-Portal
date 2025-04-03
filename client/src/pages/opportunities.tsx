@@ -43,6 +43,7 @@ interface ExtendedJob extends Job {
 interface Application {
   id: number;
   jobId: number;
+  userId: number;
   status: "pending" | "accepted" | "rejected";
 }
 
@@ -59,15 +60,17 @@ export default function Opportunities() {
   });
 
   // Fetch user's applications
-  const { data: applications, isLoading: applicationsLoading } = useQuery<
-    Application[]
-  >({
-    queryKey: ["/api/applications/user"],
+  const { data: applications, isLoading: applicationsLoading } = useQuery<Application[]>({
+    queryKey: ["/api/applications/user", user?.id],
+    enabled: !!user?.id,
+    refetchOnWindowFocus: true,
+    staleTime: 10000, // Re-fetch after 10 seconds
   });
 
   // Check if user has already applied to a job
   const hasApplied = (jobId: number) => {
-    return applications?.some((app) => app.jobId === jobId) || false;
+    if (!applications || !user) return false;
+    return applications.some(app => app.jobId === jobId && app.userId === user.id) || false;
   };
 
   const handleResumeUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -104,9 +104,12 @@ export class MemStorage implements IStorage {
   }
 
   async getApplicationsByUser(userId: number): Promise<Application[]> {
-    return Array.from(this.applications.values()).filter(
+    console.log(`Storage: Filtering applications for user ID: ${userId}`);
+    const applications = Array.from(this.applications.values()).filter(
       (app) => app.userId === userId
     );
+    console.log(`Storage: Found ${applications.length} applications for user ID: ${userId}`);
+    return applications;
   }
 
   async getApplicationsByJob(jobId: number): Promise<Application[]> {
