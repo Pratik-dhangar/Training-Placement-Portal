@@ -76,10 +76,11 @@ export default function AcademicDetails() {
                     <SelectValue placeholder="Select branch" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="cse">Computer Engineering</SelectItem>
                     <SelectItem value="cse">Computer Science</SelectItem>
                     <SelectItem value="it">Information Technology</SelectItem>
                     <SelectItem value="ece">Electronics & Communication</SelectItem>
-                    <SelectItem value="mechanical">Mechanical</SelectItem>
+                    <SelectItem value="mechanical">Mechanical Engineering</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

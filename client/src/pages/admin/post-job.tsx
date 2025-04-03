@@ -133,7 +133,7 @@ export default function PostJob() {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="w-full" disabled={createJobMutation.isPending}>
+                <Button type="submit" className="w-full bg-[#9f1c33]" disabled={createJobMutation.isPending}>
                   {createJobMutation.isPending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
