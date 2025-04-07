@@ -87,9 +87,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/applications", async (req, res, next) => {
     try {
       if (!req.user || req.user.role !== "admin") {
+        console.log('Unauthorized access attempt to /api/applications');
         return res.status(403).send("Unauthorized");
       }
       
+      console.log('Admin fetching all applications');
       const applications = await storage.getAllApplications();
       
       // Group applications by job
@@ -117,13 +119,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/applications/user", async (req, res, next) => {
     try {
       if (!req.user) {
+        console.log('Unauthenticated access attempt to /api/applications/user');
         return res.status(401).send("Unauthorized");
       }
       
-      console.log(`Fetching applications for user ID: ${req.user.id}`);
+      console.log(`Fetching applications for user ID: ${req.user.id}, username: ${req.user.username}`);
       const applications = await storage.getApplicationsByUser(req.user.id);
       
-      // Add additional user ID check to ensure we only return the current user's applications
+      // Double-check that we only return the current user's applications
       const filteredApplications = applications.filter(app => app.userId === req.user?.id);
       console.log(`Found ${filteredApplications.length} applications for user ID: ${req.user.id}`);
       

@@ -6,6 +6,14 @@ import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./dbStorage";
 import { User as SelectUser } from "@shared/schema";
+import { config } from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+// Load environment variables
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+config({ path: join(__dirname, '.env') });
 
 declare global {
   namespace Express {
@@ -34,6 +42,15 @@ export function setupAuth(app: Express) {
     resave: false,
     saveUninitialized: false,
     store: storage.sessionStore,
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      sameSite: 'lax',
+      path: '/',
+      domain: process.env.NODE_ENV === "production" ? process.env.DOMAIN : undefined
+    },
+    name: 'tp_portal_session' // Unique session name
   };
 
   app.set("trust proxy", 1);
@@ -41,26 +58,56 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
+  // Add middleware to ensure user is properly attached to request
+  app.use((req, res, next) => {
+    if (req.session && req.session.passport) {
+      console.log('Session user ID:', req.session.passport.user);
+    }
+    next();
+  });
+
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
+        console.log('LocalStrategy: Looking up user:', username);
         const user = await storage.getUserByUsername(username);
-        if (!user || !(await comparePasswords(password, user.password))) {
+        console.log('LocalStrategy: User found:', user ? { id: user.id, username: user.username } : null);
+        
+        if (!user) {
+          console.log('LocalStrategy: User not found');
           return done(null, false);
         }
+        
+        const passwordMatch = await comparePasswords(password, user.password);
+        console.log('LocalStrategy: Password match:', passwordMatch);
+        
+        if (!passwordMatch) {
+          console.log('LocalStrategy: Password mismatch');
+          return done(null, false);
+        }
+        
+        console.log('LocalStrategy: Authentication successful');
         return done(null, user);
       } catch (err) {
+        console.error('LocalStrategy error:', err);
         return done(err);
       }
     }),
   );
 
-  passport.serializeUser((user, done) => done(null, user.id));
+  passport.serializeUser((user, done) => {
+    console.log('Serializing user:', { id: user.id, username: user.username });
+    done(null, user.id);
+  });
+
   passport.deserializeUser(async (id: number, done) => {
     try {
+      console.log('Deserializing user:', id);
       const user = await storage.getUser(id);
+      console.log('Deserialized user:', user ? { id: user.id, username: user.username } : null);
       done(null, user);
     } catch (err) {
+      console.error('Deserialization error:', err);
       done(err);
     }
   });
@@ -114,8 +161,29 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/login", passport.authenticate("local"), (req, res) => {
-    res.status(200).json(req.user);
+  app.post("/api/login", (req, res, next) => {
+    console.log('Login attempt:', { username: req.body.username });
+    passport.authenticate("local", (err, user, info) => {
+      console.log('Authentication result:', { err, user: user ? { id: user.id, username: user.username } : null, info });
+      if (err) {
+        console.error('Login error:', err);
+        return next(err);
+      }
+      if (!user) {
+        console.log('Login failed: Invalid credentials');
+        return res.status(401).json({ message: 'Invalid username or password' });
+      }
+      req.logIn(user, (err) => {
+        if (err) {
+          console.error('Session creation error:', err);
+          return next(err);
+        }
+        console.log('Login successful:', { userId: user.id, username: user.username });
+        // Don't send password in response
+        const { password: _, ...userWithoutPassword } = user;
+        res.status(200).json(userWithoutPassword);
+      });
+    })(req, res, next);
   });
 
   app.post("/api/logout", (req, res, next) => {

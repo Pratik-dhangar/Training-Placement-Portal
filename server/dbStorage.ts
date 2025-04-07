@@ -2,15 +2,22 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import { eq, and } from "drizzle-orm";
 import session from "express-session";
-import createMemoryStore from "memorystore";
+import pgSession from 'connect-pg-simple';
 import { 
   User, InsertUser, 
   Job, InsertJob,
   Application, InsertApplication,
   users, jobs, applications
 } from "@shared/schema";
+import { config } from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
-const MemoryStore = createMemoryStore(session);
+// Load environment variables
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+config({ path: join(__dirname, '.env') });
+
 const { Pool } = pg;
 
 export interface IStorage {
@@ -53,13 +60,18 @@ export class DbStorage implements IStorage {
 
     // Test the connection
     this.pool.on('error', (err) => {
-      
+      console.error('Unexpected error on idle client', err);
       process.exit(-1);
     });
 
     this.db = drizzle(this.pool);
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000,
+    
+    // Use PostgreSQL session store
+    const PgSession = pgSession(session);
+    this.sessionStore = new PgSession({
+      pool: this.pool,
+      tableName: 'sessions',
+      createTableIfMissing: true
     });
   }
 
@@ -146,16 +158,23 @@ export class DbStorage implements IStorage {
 
   async getApplicationsByUser(userId: number): Promise<Application[]> {
     try {
-      return await this.db.select().from(applications).where(eq(applications.userId, userId));
+      console.log(`Fetching applications for user ID: ${userId}`);
+      const result = await this.db
+        .select()
+        .from(applications)
+        .where(eq(applications.userId, userId));
+      
+      console.log(`Found ${result.length} applications for user ID: ${userId}`);
+      return result;
     } catch (error) {
-     
+      console.error(`Error fetching applications for user ID: ${userId}`, error);
       throw error;
     }
   }
 
   async getApplicationsByJob(jobId: number): Promise<(Application & { user: User })[]> {
     try {
-      // Safer query approach with explicit field selection
+      console.log(`Fetching applications for job ID: ${jobId}`);
       const result = await this.db
         .select({
           id: applications.id,
@@ -170,7 +189,8 @@ export class DbStorage implements IStorage {
         .leftJoin(users, eq(applications.userId, users.id))
         .where(eq(applications.jobId, jobId));
       
-      // Filter out null users and cast to required type
+      console.log(`Found ${result.length} applications for job ID: ${jobId}`);
+      
       return result
         .filter(app => app.user !== null)
         .map(app => ({
@@ -183,6 +203,7 @@ export class DbStorage implements IStorage {
           user: app.user as User
         }));
     } catch (error) {
+      console.error(`Error fetching applications for job ID: ${jobId}`, error);
       throw error;
     }
   }
