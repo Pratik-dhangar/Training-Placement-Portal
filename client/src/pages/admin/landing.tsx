@@ -26,6 +26,7 @@ export default function AdminLanding() {
                   You can specify job details, requirements, and type.
                 </p>
               </CardContent>
+              
             </Card>
             
             <Card>
