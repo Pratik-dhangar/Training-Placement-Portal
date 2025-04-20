@@ -50,8 +50,17 @@ const resumeUpload = multer({
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
-  // Serve uploaded files
-  app.use("/uploads", express.static(uploadsDir));
+  // Serve uploaded files with improved logging
+  app.use("/uploads", (req, res, next) => {
+    console.log(`Static file request: ${req.path}`);
+    express.static(uploadsDir)(req, res, (err) => {
+      if (err) {
+        console.error(`Error serving static file: ${req.path}`, err);
+        return res.status(404).send("File not found");
+      }
+      next();
+    });
+  });
 
   // Jobs API
   app.post("/api/jobs", jobImageUpload.single("jobImage"), async (req, res, next) => {
@@ -91,9 +100,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/jobs", async (_req, res, next) => {
     try {
+      console.log('Fetching all jobs');
       const jobs = await storage.getJobs();
-      res.json(jobs);
+      
+      // Normalize image paths
+      const normalizedJobs = jobs.map(job => {
+        if (job.imagePath) {
+          // Make sure paths are relative to uploads directory
+          const path = job.imagePath.replace(/^.*[\\\/]uploads[\\\/]/, '');
+          job.imagePath = path;
+        }
+        return job;
+      });
+      
+      console.log(`Successfully retrieved ${jobs.length} jobs`);
+      res.json(normalizedJobs);
     } catch (err) {
+      console.error('Error fetching jobs:', err);
       next(err);
     }
   });
