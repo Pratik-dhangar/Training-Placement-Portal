@@ -5,10 +5,34 @@ import { storage } from "./dbStorage";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import express from "express";
+
+// Configure uploads
+const uploadsDir = path.join(process.cwd(), "uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Configure separate upload destinations
+const jobImageUpload = multer({
+  dest: path.join(uploadsDir, "job-images"),
+  limits: {
+    fileSize: 2 * 1024 * 1024, // 2MB limit for images
+  },
+  fileFilter: (_req, file, cb) => {
+    const allowedTypes = [".jpg", ".jpeg", ".png", ".gif"];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowedTypes.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Invalid image file type"));
+    }
+  },
+});
 
 // resume upload
-const upload = multer({
-  dest: "uploads/",
+const resumeUpload = multer({
+  dest: path.join(uploadsDir, "resumes"),
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB limit
   },
@@ -26,15 +50,41 @@ const upload = multer({
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
+  // Serve uploaded files
+  app.use("/uploads", express.static(uploadsDir));
+
   // Jobs API
-  app.post("/api/jobs", async (req, res, next) => {
+  app.post("/api/jobs", jobImageUpload.single("jobImage"), async (req, res, next) => {
     try {
       if (!req.user || req.user.role !== "admin") {
         return res.status(403).send("Unauthorized");
       }
-      const job = await storage.createJob(req.body);
+
+      // Validate required fields
+      const requiredFields = ['title', 'company', 'description', 'requirements', 'location', 'type'];
+      const missingFields = requiredFields.filter(field => !req.body[field]);
+      
+      if (missingFields.length > 0) {
+        return res.status(400).send(`Missing required fields: ${missingFields.join(', ')}`);
+      }
+
+      // Extract job data from request body
+      const jobData = {
+        title: req.body.title,
+        company: req.body.company,
+        description: req.body.description,
+        requirements: req.body.requirements,
+        location: req.body.location,
+        type: req.body.type,
+        salary: req.body.salary || null,
+        imagePath: req.file ? req.file.path : null,
+      };
+
+      console.log('Creating job with data:', jobData);
+      const job = await storage.createJob(jobData);
       res.status(201).json(job);
     } catch (err) {
+      console.error('Error creating job:', err);
       next(err);
     }
   });
@@ -61,7 +111,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Applications API
-  app.post("/api/applications", upload.single("resume"), async (req, res, next) => {
+  app.post("/api/applications", resumeUpload.single("resume"), async (req, res, next) => {
     try {
       if (!req.user || req.user.role !== "student") {
         return res.status(403).send("Unauthorized");
@@ -70,15 +120,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).send("Resume is required");
       }
 
+      // Store the file path in a consistent way
+      const resumePath = req.file.path;
+      console.log("Resume uploaded to:", resumePath);
+
       const application = await storage.createApplication({
         userId: req.user.id,
         jobId: parseInt(req.body.jobId),
         status: "pending",
-        resumePath: req.file.path,
+        resumePath: resumePath,
       });
 
       res.status(201).json(application);
     } catch (err) {
+      console.error("Error creating application:", err);
       next(err);
     }
   });
@@ -179,21 +234,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Ensure we're just using the filename without any path traversal
       const safeFilename = path.basename(req.params.filename);
-      const filePath = path.join("uploads", safeFilename);
       
-      // Log the actual file path we're trying to access
-      console.log("Looking for file at path:", filePath);
-      console.log("File exists:", fs.existsSync(filePath));
+      // Try multiple possible locations for the resume file
+      const possiblePaths = [
+        path.join(uploadsDir, safeFilename),
+        path.join(uploadsDir, "resumes", safeFilename),
+        safeFilename,  // For older files that might have stored the full path
+        path.join("uploads", safeFilename), // For older path format
+      ];
       
-      if (!fs.existsSync(filePath)) {
-        // Check if the uploads directory exists
-        const uploadsExists = fs.existsSync("uploads");
-        console.log("Uploads directory exists:", uploadsExists);
+      // Find the first path that exists
+      let filePath = null;
+      for (const pathToCheck of possiblePaths) {
+        console.log("Checking path:", pathToCheck);
+        if (fs.existsSync(pathToCheck)) {
+          filePath = pathToCheck;
+          console.log("Found file at:", filePath);
+          break;
+        }
+      }
+      
+      // If no file found after checking all possible locations
+      if (!filePath) {
+        console.log("Resume file not found in any of the expected locations");
+        console.log("Uploads directory exists:", fs.existsSync(uploadsDir));
         
-        // If uploads exists, list files in the directory to help debug
-        if (uploadsExists) {
-          const files = fs.readdirSync("uploads");
-          console.log("Files in uploads directory:", files);
+        // If uploads directory exists, list files to help debug
+        if (fs.existsSync(uploadsDir)) {
+          console.log("Files in uploads directory:", fs.readdirSync(uploadsDir));
+          
+          // Also check resumes subdirectory if it exists
+          const resumesDir = path.join(uploadsDir, "resumes");
+          if (fs.existsSync(resumesDir)) {
+            console.log("Files in resumes directory:", fs.readdirSync(resumesDir));
+          }
         }
         
         return res.status(404).send("Resume not found");
@@ -248,6 +322,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Stream the file for viewing
       fs.createReadStream(filePath).pipe(res);
     } catch (err) {
+      console.error("Error serving resume file:", err);
       next(err);
     }
   });

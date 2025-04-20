@@ -107,10 +107,21 @@ export class DbStorage implements IStorage {
 
   async createJob(insertJob: InsertJob): Promise<Job> {
     try {
+      console.log('Attempting to create job:', insertJob);
+      console.log('Required fields check:', {
+        title: !!insertJob.title,
+        company: !!insertJob.company,
+        description: !!insertJob.description,
+        requirements: !!insertJob.requirements,
+        location: !!insertJob.location,
+        type: !!insertJob.type
+      });
+      
       const result = await this.db.insert(jobs).values(insertJob).returning();
+      console.log('Job created successfully:', result[0]);
       return result[0];
     } catch (error) {
-      
+      console.error('Error creating job in database:', error);
       throw error;
     }
   }

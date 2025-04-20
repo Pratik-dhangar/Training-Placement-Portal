@@ -4,7 +4,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Loader2, Building2, User, Eye, Pencil, Trash2, FileText, Download, Share2 } from "lucide-react";
+import { Loader2, Building2, User, Eye, Pencil, Trash2, FileText, Download, Share2, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Job, Application, User as UserType } from "@shared/schema";
 import { Navbar } from "@/components/nav/navbar";
@@ -96,20 +96,27 @@ export default function ReviewJobs() {
   
   const handleViewResume = (resumePath: string) => {
     try {
-      // Extract just the filename from the path if needed
+      if (!resumePath) {
+        throw new Error("Resume path is missing");
+      }
+      
+      console.log("Original resume path:", resumePath);
+      
+      // Extract just the filename from the path
       let filename = resumePath;
       if (resumePath.includes('/') || resumePath.includes('\\')) {
         const pathParts = resumePath.split(/[\/\\]/);
         filename = pathParts[pathParts.length - 1];
       }
       
+      console.log("Using filename:", filename);
       setSelectedResumePath(filename);
       setResumeDialogOpen(true);
     } catch (error) {
       console.error("Error viewing resume:", error);
       toast({
         title: "Error",
-        description: "Failed to view resume",
+        description: "Failed to view resume. The file may not exist or may be inaccessible.",
         variant: "destructive",
       });
     }
@@ -247,12 +254,36 @@ export default function ReviewJobs() {
             <DialogTitle>Resume Viewer</DialogTitle>
           </DialogHeader>
           <div className="w-full h-[70vh]">
-            {selectedResumePath && (
-              <iframe 
-                src={`/api/applications/resume/${selectedResumePath}`}
-                className="w-full h-full border-0"
-                title="Resume Viewer"
-              />
+            {selectedResumePath ? (
+              <>
+                <iframe 
+                  src={`/api/applications/resume/${encodeURIComponent(selectedResumePath)}`}
+                  className="w-full h-full border-0"
+                  title="Resume Viewer"
+                  onError={(e) => {
+                    console.error("Error loading resume in iframe:", e);
+                    toast({
+                      title: "Error",
+                      description: "Failed to load the resume. The file may not exist or be in an unsupported format.",
+                      variant: "destructive",
+                    });
+                  }}
+                />
+                <div className="mt-4">
+                  <Button 
+                    onClick={() => window.open(`/api/applications/resume/${encodeURIComponent(selectedResumePath)}`, '_blank')}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Open in New Tab
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <p className="text-gray-500">No resume selected or the file path is invalid.</p>
+              </div>
             )}
           </div>
         </DialogContent>

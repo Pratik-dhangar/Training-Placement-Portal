@@ -20,6 +20,8 @@ export const jobs = pgTable("jobs", {
   requirements: text("requirements").notNull(),
   location: text("location").notNull(),
   type: text("type", { enum: ["fulltime", "internship"] }).notNull(),
+  salary: text("salary"),
+  imagePath: text("image_path"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -48,6 +50,8 @@ export const insertJobSchema = createInsertSchema(jobs).pick({
   requirements: true,
   location: true,
   type: true,
+  salary: true,
+  imagePath: true,
 });
 
 export const insertApplicationSchema = createInsertSchema(applications).pick({

@@ -131,6 +131,19 @@ export default function ManageJobs() {
                             />
                           </div>
                           <div>
+                            <Label htmlFor="salary">Salary</Label>
+                            <Input
+                              id="salary"
+                              value={selectedJob?.salary || ""}
+                              placeholder="e.g. 50000 or 40000-60000"
+                              onChange={(e) =>
+                                setSelectedJob(prev =>
+                                  prev ? { ...prev, salary: e.target.value } : null
+                                )
+                              }
+                            />
+                          </div>
+                          <div>
                             <Label htmlFor="type">Type</Label>
                             <Select
                               value={selectedJob?.type}
@@ -176,6 +189,11 @@ export default function ManageJobs() {
                   <span className="text-sm font-medium">
                     {job.type === "fulltime" ? "Full Time" : "Internship"}
                   </span>
+                  {job.salary && (
+                    <span className="text-sm text-gray-600">
+                      Salary: {job.salary}
+                    </span>
+                  )}
                 </div>
               </CardContent>
             </Card>

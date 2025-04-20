@@ -37,6 +37,8 @@ import { useState } from "react";
 // Define an extended type for Job that may include skills
 interface ExtendedJob extends Job {
   skills?: string;
+  salary?: string;
+  imagePath?: string;
 }
 
 // Define Application type for tracking applied jobs
@@ -77,6 +79,28 @@ export default function Opportunities() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Check file size
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast({
+        title: "File Too Large",
+        description: "Resume must be under 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check file type
+    const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg'];
+    if (!validTypes.includes(file.type)) {
+      toast({
+        title: "Invalid File Type",
+        description: "Resume must be PDF, DOC, DOCX, or JPEG",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Valid file, set it
     setResumeFile(file);
     toast({
       title: "Resume selected",
@@ -94,11 +118,14 @@ export default function Opportunities() {
       return;
     }
 
-    const formData = new FormData();
-    formData.append("jobId", jobId.toString());
-    formData.append("resume", resumeFile);
-
     try {
+      console.log("Attempting to apply to job ID:", jobId);
+      console.log("Resume file:", resumeFile.name, resumeFile.type, resumeFile.size);
+      
+      const formData = new FormData();
+      formData.append("jobId", jobId.toString());
+      formData.append("resume", resumeFile);
+
       const res = await fetch("/api/applications", {
         method: "POST",
         body: formData,
@@ -106,9 +133,14 @@ export default function Opportunities() {
       });
 
       if (!res.ok) {
-        throw new Error(await res.text());
+        const errorText = await res.text();
+        console.error("Application submission error:", errorText);
+        throw new Error(errorText || "Failed to submit application");
       }
 
+      const data = await res.json();
+      console.log("Application submitted successfully:", data);
+      
       queryClient.invalidateQueries({ queryKey: ["/api/applications/user"] });
       toast({
         title: "Application submitted",
@@ -118,13 +150,15 @@ export default function Opportunities() {
       // Reset state after successful submission
       setResumeFile(null);
       setSelectedJobId(null);
+      setDialogOpen(false); // Close the dialog after successful submission
     } catch (error) {
+      console.error("Error applying to job:", error);
       toast({
         title: "Error",
         description:
           error instanceof Error
             ? error.message
-            : "Failed to submit application",
+            : "Failed to submit application. Please try again.",
         variant: "destructive",
       });
     }
@@ -160,6 +194,21 @@ export default function Opportunities() {
 
           {selectedJob && (
             <div className="space-y-4">
+              {/* Company Image */}
+              {selectedJob.imagePath && (
+                <div className="flex justify-center mb-4">
+                  <img 
+                    src={`/uploads/${selectedJob.imagePath.replace(/^uploads[\\\/]/, '')}`} 
+                    alt={`${selectedJob.company} logo`} 
+                    className="max-h-40 object-contain rounded-md"
+                    onError={(e) => {
+                      // Hide the image if it fails to load
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                </div>
+              )}
+            
               <div className="flex items-center gap-2 text-gray-600">
                 <Building2 className="h-5 w-5" />
                 <span className="font-medium text-lg">
@@ -190,6 +239,17 @@ export default function Opportunities() {
                       : "Internship"}
                   </span>
                 </div>
+                {/* Salary information if available */}
+                {selectedJob.salary && (
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                      <circle cx="12" cy="12" r="10"/>
+                      <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/>
+                      <path d="M12 18V6"/>
+                    </svg>
+                    <span>Salary: {selectedJob.salary}</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-2 text-gray-600">
                   <Calendar className="h-4 w-4" />
                   <span>
@@ -258,54 +318,63 @@ export default function Opportunities() {
         </DialogContent>
       </Dialog>
 
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <h2 className="text-2xl font-bold mb-6">Available Opportunities</h2>
-        <div className="space-y-4">
-          {jobs?.map((job) => (
-            <Card
-              key={job.id}
-              className="shadow-sm hover:shadow-md transition-shadow"
-            >
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Building2 className="h-5 w-5" />
-                    {job.title} at {job.company}
-                  </div>
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-2xl font-bold mb-6">Job Opportunities</h1>
 
-                  {/* Show applied badge in card header if already applied */}
-                  {hasApplied(job.id) && (
-                    <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full flex items-center gap-1">
-                      <CheckCircle2 className="h-3 w-3" />
-                      Applied
-                    </span>
-                  )}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {jobs?.map((job) => (
+            <Card key={job.id} className="overflow-hidden">
+              {job.imagePath && (
+                <div className="h-40 overflow-hidden bg-gray-100">
+                  <img 
+                    src={`/uploads/${job.imagePath.replace(/^uploads[\\\/]/, '')}`} 
+                    alt={`${job.company} logo`} 
+                    className="w-full h-full object-contain p-2"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                </div>
+              )}
+              <CardHeader>
+                <CardTitle className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-lg font-bold">{job.title}</h3>
+                    <p className="text-sm text-gray-600">{job.company}</p>
+                  </div>
+                  <span className="text-xs font-medium px-2 py-1 bg-gray-100 rounded-full">
+                    {job.type === "fulltime" ? "Full Time" : "Internship"}
+                  </span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-gray-600 mb-4">
-                  {job.description.length > 150
-                    ? `${job.description.substring(0, 150)}...`
-                    : job.description}
+                <p className="text-sm text-gray-600 line-clamp-3 mb-2">
+                  {job.description}
                 </p>
-                <div className="flex items-center gap-4">
-                  <span className="text-sm text-gray-600">
-                    <Calendar className="h-4 w-4 inline mr-1" />
-                    {job.createdAt &&
-                      new Date(job.createdAt).toLocaleDateString()}
-                  </span>
-                  <span className="text-sm font-medium">
-                    {job.type === "fulltime" ? "Full Time" : "Internship"}
-                  </span>
-                  <span className="text-sm text-gray-600">
-                    <MapPin className="h-4 w-4 inline mr-1" />
-                    {job.location}
-                  </span>
+                <div className="flex items-center gap-4 text-xs text-gray-600 mt-2">
+                  <div className="flex items-center gap-1">
+                    <MapPin className="h-3 w-3" />
+                    <span>{job.location}</span>
+                  </div>
+                  {job.salary && (
+                    <div className="flex items-center gap-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/>
+                        <path d="M12 18V6"/>
+                      </svg>
+                      <span>{job.salary}</span>
+                    </div>
+                  )}
                 </div>
               </CardContent>
-              <CardFooter className="border-t pt-4 flex justify-between">
-                <Button variant="outline" onClick={() => handleViewJob(job)}>
-                  View Job Details
+              <CardFooter>
+                <Button 
+                  className="w-full bg-[#9f1c33]"
+                  onClick={() => handleViewJob(job)}
+                  disabled={user.role !== "student"}
+                >
+                  {hasApplied(job.id) ? "Applied" : "View Details"}
                 </Button>
               </CardFooter>
             </Card>
