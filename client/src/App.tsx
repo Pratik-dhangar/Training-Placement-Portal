@@ -10,6 +10,7 @@ import StudentDashboard from "@/pages/dashboard/student";
 import AdminLanding from "@/pages/admin/landing";
 import PostJob from "@/pages/admin/post-job";
 import ReviewJobs from "@/pages/admin/review-jobs";
+import StudentLookup from "@/pages/admin/student-lookup";
 import PersonalDetails from "@/pages/personal-details";
 import AcademicDetails from "@/pages/academic-details";
 import Opportunities from "@/pages/opportunities";
@@ -28,6 +29,7 @@ function Router() {
       <ProtectedRoute path="/applications" component={Applications} />
       <ProtectedRoute path="/admin/post-job" component={PostJob} />
       <ProtectedRoute path="/admin/review-jobs" component={ReviewJobs} />
+      <ProtectedRoute path="/admin/student-lookup" component={StudentLookup} />
       <Route component={NotFound} />
     </Switch>
   );

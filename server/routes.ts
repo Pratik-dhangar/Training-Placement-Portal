@@ -390,6 +390,273 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User details routes
+  app.get("/api/users/:userId/details", async (req, res, next) => {
+    try {
+      // Check if the user is authenticated and authorized
+      if (!req.user) {
+        return res.status(401).send("Unauthorized");
+      }
+      
+      const userId = parseInt(req.params.userId);
+      
+      // Admin can view any user's details, but students can only view their own
+      if (req.user.role !== "admin" && req.user.id !== userId) {
+        return res.status(403).send("Forbidden");
+      }
+      
+      const details = await storage.getStudentFullDetails(userId);
+      
+      if (!details) {
+        return res.status(404).send("User not found");
+      }
+      
+      res.json(details);
+    } catch (err) {
+      console.error("Error fetching user details:", err);
+      next(err);
+    }
+  });
+
+  // Academic details routes
+  app.get("/api/users/:userId/academic-details", async (req, res, next) => {
+    try {
+      // Check if the user is authenticated and authorized
+      if (!req.user) {
+        return res.status(401).send("Unauthorized");
+      }
+      
+      const userId = parseInt(req.params.userId);
+      
+      // Admin can view any user's details, but students can only view their own
+      if (req.user.role !== "admin" && req.user.id !== userId) {
+        return res.status(403).send("Forbidden");
+      }
+      
+      const details = await storage.getAcademicDetails(userId.toString());
+      
+      res.json(details || {});
+    } catch (err) {
+      console.error("Error fetching academic details:", err);
+      next(err);
+    }
+  });
+
+  app.patch("/api/users/:userId/academic-details", async (req, res, next) => {
+    try {
+      // Check if the user is authenticated and authorized
+      if (!req.user) {
+        return res.status(401).send("Unauthorized");
+      }
+      
+      const userId = parseInt(req.params.userId);
+      
+      // Admin can update any user's details, but students can only update their own
+      if (req.user.role !== "admin" && req.user.id !== userId) {
+        return res.status(403).send("Forbidden");
+      }
+      
+      // Extract details from request body
+      const { course, branch, semester, academicYear, percentage, armietPin } = req.body;
+      
+      // Update academic details
+      const details = await storage.updateAcademicDetails(userId.toString(), {
+        course, 
+        branch, 
+        semester, 
+        academicYear, 
+        percentage, 
+        armietPin
+      });
+      
+      res.json(details);
+    } catch (err) {
+      console.error("Error updating academic details:", err);
+      next(err);
+    }
+  });
+
+  // Personal details routes
+  app.get("/api/users/:userId/personal-details", async (req, res, next) => {
+    try {
+      // Check if the user is authenticated and authorized
+      if (!req.user) {
+        return res.status(401).send("Unauthorized");
+      }
+      
+      const userId = parseInt(req.params.userId);
+      
+      // Admin can view any user's details, but students can only view their own
+      if (req.user.role !== "admin" && req.user.id !== userId) {
+        return res.status(403).send("Forbidden");
+      }
+      
+      const details = await storage.getPersonalDetails(userId.toString());
+      
+      res.json(details || {});
+    } catch (err) {
+      console.error("Error fetching personal details:", err);
+      next(err);
+    }
+  });
+
+  app.patch("/api/users/:userId/personal-details", async (req, res, next) => {
+    try {
+      // Check if the user is authenticated and authorized
+      if (!req.user) {
+        return res.status(401).send("Unauthorized");
+      }
+      
+      const userId = parseInt(req.params.userId);
+      
+      // Admin can update any user's details, but students can only update their own
+      if (req.user.role !== "admin" && req.user.id !== userId) {
+        return res.status(403).send("Forbidden");
+      }
+      
+      // Extract details from request body
+      const { phone, email, address, linkedin } = req.body;
+      
+      // Update personal details
+      const details = await storage.updatePersonalDetails(userId.toString(), {
+        phone, 
+        email, 
+        address, 
+        linkedin
+      });
+      
+      res.json(details);
+    } catch (err) {
+      console.error("Error updating personal details:", err);
+      next(err);
+    }
+  });
+
+  // Admin route to get all students
+  app.get('/api/admin/students', async (req, res) => {
+    try {
+      // Check if user is authenticated and is an admin
+      const user = req.session.user;
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ error: 'Unauthorized' });
+      }
+
+      // Get all students
+      const students = await storage.getAllStudents();
+
+      // Get personal and academic details for each student
+      const studentsWithDetails = await Promise.all(
+        students.map(async (student) => {
+          const personalDetails = await storage.getPersonalDetails(student.id);
+          const academicDetails = await storage.getAcademicDetails(student.id);
+          
+          // Transform snake_case to camelCase for academicDetails
+          const formattedAcademicDetails = academicDetails ? {
+            course: academicDetails.course,
+            branch: academicDetails.branch,
+            semester: academicDetails.semester,
+            academicYear: academicDetails.academicYear,
+            percentage: academicDetails.percentage,
+            armietPin: academicDetails.armietPin,
+            updatedAt: academicDetails.updatedAt || new Date().toISOString()
+          } : null;
+          
+          // Format personal details
+          const formattedPersonalDetails = personalDetails ? {
+            address: personalDetails.address,
+            linkedin: personalDetails.linkedin,
+            updatedAt: personalDetails.updatedAt || new Date().toISOString()
+          } : null;
+          
+          return {
+            ...student,
+            academicDetails: formattedAcademicDetails,
+            personalDetails: formattedPersonalDetails
+          };
+        })
+      );
+
+      res.json({ students: studentsWithDetails });
+    } catch (error) {
+      console.error('Error fetching students:', error);
+      res.status(500).json({ error: 'Failed to fetch students' });
+    }
+  });
+
+  // Helper middleware to check authentication and admin role
+  const requireAdmin = (req, res, next) => {
+    console.log("Auth check - isAuthenticated:", req.isAuthenticated());
+    console.log("Auth check - session:", req.session);
+    console.log("Auth check - user:", req.user);
+    
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ 
+        error: 'Unauthorized', 
+        message: 'Authentication required' 
+      });
+    }
+    
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ 
+        error: 'Forbidden', 
+        message: 'Admin privileges required' 
+      });
+    }
+    
+    console.log("Auth check passed, proceeding to handler");
+    next();
+  };
+  
+  // Admin route to lookup a specific student
+  app.get('/api/admin/student-lookup', requireAdmin, async (req, res) => {
+    try {
+      // Check if we have either username or userId
+      const { username, userId } = req.query as { username?: string, userId?: string };
+      console.log('Looking up student with:', { username, userId });
+      
+      if (!username && !userId) {
+        console.log('Missing search parameters');
+        return res.status(400).json({ 
+          error: 'Bad Request', 
+          message: 'Either username or userId is required' 
+        });
+      }
+      
+      // Fetch the user by either username or ID
+      let studentUser;
+      if (username) {
+        console.log('Searching by username:', username);
+        studentUser = await storage.getUserByUsername(username);
+      } else if (userId) {
+        console.log('Searching by userId:', userId);
+        studentUser = await storage.getUser(parseInt(userId));
+      }
+      
+      console.log('Student search result:', studentUser ? 'Found' : 'Not found');
+      
+      if (!studentUser) {
+        return res.status(404).json({ 
+          error: 'Not Found', 
+          message: 'Student not found' 
+        });
+      }
+      
+      console.log('Fetching full details for student:', studentUser.username, 'ID:', studentUser.id);
+      
+      // Get full student details
+      const studentDetails = await storage.getStudentFullDetails(studentUser.id);
+      
+      console.log('Student details retrieved successfully');
+      res.json(studentDetails);
+    } catch (error) {
+      console.error('Error looking up student:', error);
+      res.status(500).json({ 
+        error: 'Server Error', 
+        message: 'Failed to retrieve student details' 
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

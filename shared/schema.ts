@@ -12,6 +12,28 @@ export const users = pgTable("users", {
   phone: text("phone").notNull(),
 });
 
+export const academicDetails = pgTable("academic_details", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull().unique(),
+  course: text("course"),
+  branch: text("branch"),
+  semester: text("semester"),
+  academicYear: text("academic_year"),
+  percentage: text("percentage"),
+  armietPin: text("armiet_pin"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const personalDetails = pgTable("personal_details", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull().unique(),
+  phone: text("phone").notNull(),
+  email: text("email").notNull(),
+  address: text("address"),
+  linkedin: text("linkedin"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const jobs = pgTable("jobs", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
@@ -43,6 +65,24 @@ export const insertUserSchema = createInsertSchema(users).pick({
   phone: true,
 });
 
+export const insertAcademicDetailsSchema = createInsertSchema(academicDetails).pick({
+  userId: true,
+  course: true,
+  branch: true,
+  semester: true,
+  academicYear: true,
+  percentage: true,
+  armietPin: true,
+});
+
+export const insertPersonalDetailsSchema = createInsertSchema(personalDetails).pick({
+  userId: true,
+  phone: true,
+  email: true,
+  address: true,
+  linkedin: true,
+});
+
 export const insertJobSchema = createInsertSchema(jobs).pick({
   title: true,
   company: true,
@@ -63,6 +103,10 @@ export const insertApplicationSchema = createInsertSchema(applications).pick({
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type AcademicDetails = typeof academicDetails.$inferSelect;
+export type InsertAcademicDetails = z.infer<typeof insertAcademicDetailsSchema>;
+export type PersonalDetails = typeof personalDetails.$inferSelect;
+export type InsertPersonalDetails = z.infer<typeof insertPersonalDetailsSchema>;
 export type Job = typeof jobs.$inferSelect;
 export type InsertJob = z.infer<typeof insertJobSchema>;
 export type Application = typeof applications.$inferSelect;

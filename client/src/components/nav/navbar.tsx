@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { User, GraduationCap, Briefcase, FileText, ChevronDown, Settings } from "lucide-react";
+import { User, GraduationCap, Briefcase, FileText, ChevronDown, Settings, Search } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +23,7 @@ export function Navbar() {
     { href: "/", label: "Dashboard", icon: User },
     { href: "/admin/post-job", label: "Post New Job", icon: Briefcase },
     { href: "/admin/review-jobs", label: "Review Jobs", icon: FileText },
+    { href: "/admin/student-lookup", label: "Student Lookup", icon: Search },
   ];
 
   const links = user?.role === "admin" ? adminLinks : studentLinks;

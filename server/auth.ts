@@ -58,11 +58,22 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  // Add middleware to ensure user is properly attached to request
+  // Add middleware to log requests and session/auth info for debugging
   app.use((req, res, next) => {
-    if (req.session && req.session.passport) {
-      console.log('Session user ID:', req.session.passport.user);
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    
+    // Log session info
+    console.log('Session ID:', req.sessionID);
+    console.log('Session data:', req.session);
+    
+    // Log authentication status
+    console.log('isAuthenticated:', req.isAuthenticated());
+    if (req.user) {
+      console.log('User:', { id: req.user.id, username: req.user.username, role: req.user.role });
+    } else {
+      console.log('User: Not authenticated');
     }
+    
     next();
   });
 
