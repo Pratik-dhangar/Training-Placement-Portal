@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Linkedin } from "lucide-react";
+import { Loader2, Linkedin, Github, Instagram } from "lucide-react";
 import { Navbar } from "@/components/nav/navbar";
 
 export default function PersonalDetails() {
@@ -18,7 +18,9 @@ export default function PersonalDetails() {
     phone: user?.phone || "",
     email: user?.email || "",
     address: "",
-    linkedin: ""
+    linkedin: "",
+    github: "",
+    socialMedia: ""
   });
 
   // Fetch existing personal details
@@ -39,7 +41,9 @@ export default function PersonalDetails() {
         phone: personalDetails.phone || user?.phone || "",
         email: personalDetails.email || user?.email || "",
         address: personalDetails.address || "",
-        linkedin: personalDetails.linkedin || ""
+        linkedin: personalDetails.linkedin || "",
+        github: personalDetails.github || "",
+        socialMedia: personalDetails.socialMedia || ""
       });
     }
   }, [personalDetails, user]);
@@ -127,19 +131,45 @@ export default function PersonalDetails() {
                   rows={3}
                 />
               </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="linkedin" className="flex items-center gap-2">
+                    <Linkedin className="h-4 w-4" />
+                    LinkedIn Profile
+                  </Label>
+                  <Input
+                    id="linkedin"
+                    value={formData.linkedin}
+                    onChange={(e) => setFormData({ ...formData, linkedin: e.target.value })}
+                    placeholder="https://linkedin.com/in/yourusername"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="github" className="flex items-center gap-2">
+                    <Github className="h-4 w-4" />
+                    GitHub Profile
+                  </Label>
+                  <Input
+                    id="github"
+                    value={formData.github}
+                    onChange={(e) => setFormData({ ...formData, github: e.target.value })}
+                    placeholder="https://github.com/yourusername"
+                  />
+                </div>
+              </div>
               <div>
-                <Label htmlFor="linkedin" className="flex items-center gap-2">
-                  <Linkedin className="h-4 w-4" />
-                  LinkedIn Profile
+                <Label htmlFor="socialMedia" className="flex items-center gap-2">
+                  <Instagram className="h-4 w-4" />
+                  Social Media (Instagram/Facebook)
                 </Label>
                 <Input
-                  id="linkedin"
-                  value={formData.linkedin}
-                  onChange={(e) => setFormData({ ...formData, linkedin: e.target.value })}
-                  placeholder="https://linkedin.com/in/yourusername"
+                  id="socialMedia"
+                  value={formData.socialMedia}
+                  onChange={(e) => setFormData({ ...formData, socialMedia: e.target.value })}
+                  placeholder="https://instagram.com/yourusername or https://facebook.com/yourusername"
                 />
               </div>
-              <Button type="submit" disabled={updateMutation.isPending} className="mt-4">
+              <Button type="submit" disabled={updateMutation.isPending} className="mt-4 bg-[#9f1c33]">
                 {updateMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

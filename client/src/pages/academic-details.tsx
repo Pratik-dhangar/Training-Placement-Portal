@@ -6,8 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle } from "lucide-react";
 import { Navbar } from "@/components/nav/navbar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -20,7 +21,9 @@ export default function AcademicDetails() {
     semester: "",
     academicYear: "",
     percentage: "",
-    armietPin: ""
+    armietPin: "",
+    previousSemesterGrades: "",
+    backlogs: ""
   });
 
   // Fetch existing academic details
@@ -43,7 +46,9 @@ export default function AcademicDetails() {
         semester: academicDetails.semester || "",
         academicYear: academicDetails.academicYear || "",
         percentage: academicDetails.percentage || "",
-        armietPin: academicDetails.armietPin || ""
+        armietPin: academicDetails.armietPin || "",
+        previousSemesterGrades: academicDetails.previousSemesterGrades || "",
+        backlogs: academicDetails.backlogs || ""
       });
     }
   }, [academicDetails]);
@@ -180,7 +185,7 @@ export default function AcademicDetails() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="armietPin">ARMIET Registration/PIN Number</Label>
+                  <Label htmlFor="armietPin">ARMIET PIN</Label>
                   <Input
                     id="armietPin"
                     value={formData.armietPin}
@@ -189,7 +194,33 @@ export default function AcademicDetails() {
                   />
                 </div>
               </div>
-              <Button type="submit" disabled={updateMutation.isPending} className="mt-6">
+              
+              <div>
+                <Label htmlFor="previousSemesterGrades">Previous Semester Grades/Percentage</Label>
+                <Textarea
+                  id="previousSemesterGrades"
+                  value={formData.previousSemesterGrades}
+                  onChange={(e) => setFormData({ ...formData, previousSemesterGrades: e.target.value })}
+                  placeholder="e.g. Sem 1: 8.5 CGPA, Sem 2: 8.7 CGPA, Sem 3: 9.0 CGPA"
+                  rows={3}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="backlogs" className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                  Backlogs/ATKT (if any)
+                </Label>
+                <Textarea
+                  id="backlogs"
+                  value={formData.backlogs}
+                  onChange={(e) => setFormData({ ...formData, backlogs: e.target.value })}
+                  placeholder="List any backlog subjects or ATKT details. If none, you can leave this blank."
+                  rows={2}
+                />
+              </div>
+              
+              <Button type="submit" disabled={updateMutation.isPending} className="mt-6 bg-[#9f1c33]">
                 {updateMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

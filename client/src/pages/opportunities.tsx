@@ -28,6 +28,7 @@ import {
   User,
   BriefcaseBusiness,
   CheckCircle2,
+  Mail,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Job } from "@shared/schema";
@@ -39,6 +40,7 @@ interface ExtendedJob extends Omit<Job, 'salary' | 'imagePath'> {
   skills?: string;
   salary: string | null;
   imagePath: string | null;
+  contactDetails: string | null;
 }
 
 // Define Application type for tracking applied jobs
@@ -302,6 +304,17 @@ export default function Opportunities() {
                   {selectedJob.requirements}
                 </p>
               </div>
+
+              {/* Contact details section - only show if available */}
+              {selectedJob.contactDetails && (
+                <div className="mt-6">
+                  <h3 className="font-semibold text-lg mb-2">Contact Details</h3>
+                  <div className="text-gray-700 whitespace-pre-line bg-white p-4 rounded-md border flex items-start gap-2">
+                    <Mail className="h-5 w-5 text-gray-500 mt-0.5 flex-shrink-0" />
+                    <p>{selectedJob.contactDetails}</p>
+                  </div>
+                </div>
+              )}
 
               {/* Resume upload and apply button section - only show if not already applied */}
               {!hasApplied(selectedJob.id) && (

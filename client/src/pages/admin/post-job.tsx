@@ -20,7 +20,7 @@ export default function PostJob() {
   const { toast } = useToast();
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
 
-  const form = useForm<InsertJob & { salary?: string }>({
+  const form = useForm<InsertJob & { salary?: string, contactDetails?: string }>({
     resolver: zodResolver(insertJobSchema),
     defaultValues: {
       title: "",
@@ -30,12 +30,13 @@ export default function PostJob() {
       location: "",
       type: "fulltime",
       salary: "",
+      contactDetails: "",
       imagePath: "",
     },
   });
 
   const createJobMutation = useMutation({
-    mutationFn: async (data: InsertJob & { salary?: string }) => {
+    mutationFn: async (data: InsertJob & { salary?: string, contactDetails?: string }) => {
       // Create FormData to handle file upload
       const formData = new FormData();
       
@@ -50,6 +51,10 @@ export default function PostJob() {
       // Add optional fields if they exist
       if (data.salary) {
         formData.append('salary', data.salary);
+      }
+      
+      if (data.contactDetails) {
+        formData.append('contactDetails', data.contactDetails);
       }
       
       // Add the image file if selected
@@ -97,7 +102,7 @@ export default function PostJob() {
   };
 
   // Validate form data to ensure all required fields are present
-  const validateFormData = (data: InsertJob & { salary?: string }) => {
+  const validateFormData = (data: InsertJob & { salary?: string, contactDetails?: string }) => {
     console.log('Validating form data:', data);
     // Check for required fields
     const requiredFields = ['title', 'company', 'description', 'requirements', 'location', 'type'] as const;
@@ -129,7 +134,7 @@ export default function PostJob() {
   };
 
   // Form submission handler
-  const onSubmit = (data: InsertJob & { salary?: string }) => {
+  const onSubmit = (data: InsertJob & { salary?: string, contactDetails?: string }) => {
     console.log('Form submission initiated:', data);
     
     if (!validateFormData(data)) {
@@ -205,6 +210,23 @@ export default function PostJob() {
                     <FormItem>
                       <FormLabel>Location</FormLabel>
                       <Input {...field} />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="contactDetails"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Contact Details</FormLabel>
+                      <Textarea 
+                        {...field} 
+                        placeholder="Enter contact details for this job posting (email, phone, etc.)" 
+                      />
+                      <FormDescription>
+                        Provide contact information for applicants.
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

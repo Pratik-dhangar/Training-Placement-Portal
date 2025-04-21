@@ -86,6 +86,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         location: req.body.location,
         type: req.body.type,
         salary: req.body.salary || null,
+        contactDetails: req.body.contactDetails || null,
         imagePath: req.file ? req.file.path : null,
       };
 
@@ -457,7 +458,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Extract details from request body
-      const { course, branch, semester, academicYear, percentage, armietPin } = req.body;
+      const { 
+        course, 
+        branch, 
+        semester, 
+        academicYear, 
+        percentage, 
+        armietPin,
+        previousSemesterGrades,
+        backlogs
+      } = req.body;
       
       // Update academic details
       const details = await storage.updateAcademicDetails(userId.toString(), {
@@ -466,7 +476,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         semester, 
         academicYear, 
         percentage, 
-        armietPin
+        armietPin,
+        previousSemesterGrades,
+        backlogs
       });
       
       res.json(details);
@@ -515,14 +527,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Extract details from request body
-      const { phone, email, address, linkedin } = req.body;
+      const { phone, email, address, linkedin, github, socialMedia } = req.body;
       
       // Update personal details
       const details = await storage.updatePersonalDetails(userId.toString(), {
         phone, 
         email, 
         address, 
-        linkedin
+        linkedin,
+        github,
+        socialMedia
       });
       
       res.json(details);
@@ -558,6 +572,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             academicYear: academicDetails.academicYear,
             percentage: academicDetails.percentage,
             armietPin: academicDetails.armietPin,
+            previousSemesterGrades: academicDetails.previousSemesterGrades,
+            backlogs: academicDetails.backlogs,
             updatedAt: academicDetails.updatedAt || new Date().toISOString()
           } : null;
           
@@ -565,6 +581,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const formattedPersonalDetails = personalDetails ? {
             address: personalDetails.address,
             linkedin: personalDetails.linkedin,
+            github: personalDetails.github,
+            socialMedia: personalDetails.socialMedia,
             updatedAt: personalDetails.updatedAt || new Date().toISOString()
           } : null;
           

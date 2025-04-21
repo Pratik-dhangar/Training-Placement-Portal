@@ -21,6 +21,8 @@ export const academicDetails = pgTable("academic_details", {
   academicYear: text("academic_year"),
   percentage: text("percentage"),
   armietPin: text("armiet_pin"),
+  previousSemesterGrades: text("previous_semester_grades"),
+  backlogs: text("backlogs"),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
@@ -31,6 +33,8 @@ export const personalDetails = pgTable("personal_details", {
   email: text("email").notNull(),
   address: text("address"),
   linkedin: text("linkedin"),
+  github: text("github"),
+  socialMedia: text("social_media"),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
@@ -43,6 +47,7 @@ export const jobs = pgTable("jobs", {
   location: text("location").notNull(),
   type: text("type", { enum: ["fulltime", "internship"] }).notNull(),
   salary: text("salary"),
+  contactDetails: text("contact_details"),
   imagePath: text("image_path"),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -73,6 +78,8 @@ export const insertAcademicDetailsSchema = createInsertSchema(academicDetails).p
   academicYear: true,
   percentage: true,
   armietPin: true,
+  previousSemesterGrades: true,
+  backlogs: true,
 });
 
 export const insertPersonalDetailsSchema = createInsertSchema(personalDetails).pick({
@@ -81,6 +88,8 @@ export const insertPersonalDetailsSchema = createInsertSchema(personalDetails).p
   email: true,
   address: true,
   linkedin: true,
+  github: true,
+  socialMedia: true,
 });
 
 export const insertJobSchema = createInsertSchema(jobs).pick({
@@ -91,6 +100,7 @@ export const insertJobSchema = createInsertSchema(jobs).pick({
   location: true,
   type: true,
   salary: true,
+  contactDetails: true,
   imagePath: true,
 });
 

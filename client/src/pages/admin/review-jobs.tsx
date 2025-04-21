@@ -456,12 +456,21 @@ export default function ReviewJobs() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-gray-600 mb-2">{job.description}</p>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 flex-wrap">
                   <span className="text-sm text-gray-600">{job.company}</span>
                   <span className="text-sm font-medium">
                     {job.type === "fulltime" ? "Full Time" : "Internship"}
                   </span>
                   <span className="text-sm text-gray-600">{job.location}</span>
+                  {job.contactDetails && (
+                    <span className="text-sm text-gray-600 flex items-center gap-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                        <polyline points="22,6 12,13 2,6"></polyline>
+                      </svg>
+                      Contact Available
+                    </span>
+                  )}
                 </div>
               </CardContent>
             </Card>

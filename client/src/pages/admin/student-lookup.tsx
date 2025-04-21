@@ -17,12 +17,12 @@ import {
 } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Search, User, GraduationCap, Link as LinkIcon } from "lucide-react";
+import { Loader2, Search, User, GraduationCap, Link as LinkIcon, Github, Instagram } from "lucide-react";
 import { useLocation } from "wouter";
 import { Navbar } from "@/components/nav/navbar";
 import { useToast } from "@/hooks/use-toast";
 
-interface StudentDetails {
+export interface StudentDetails {
   user: {
     id: number;
     username: string;
@@ -38,6 +38,8 @@ interface StudentDetails {
     academicYear: string;
     percentage: string;
     armietPin: string;
+    previousSemesterGrades: string;
+    backlogs: string;
     updatedAt: string;
   };
   personal?: {
@@ -45,6 +47,8 @@ interface StudentDetails {
     email: string;
     address: string;
     linkedin: string;
+    github: string;
+    socialMedia: string;
     updatedAt: string;
   };
 }
@@ -271,6 +275,34 @@ export default function StudentLookupPage() {
                             </a>
                           </div>
                         )}
+                        {studentDetails.personal.github && (
+                          <div>
+                            <p className="text-sm text-muted-foreground">GitHub</p>
+                            <a 
+                              href={studentDetails.personal.github} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="font-medium text-blue-600 hover:underline flex items-center"
+                            >
+                              {studentDetails.personal.github}
+                              <Github className="h-3 w-3 ml-1" />
+                            </a>
+                          </div>
+                        )}
+                        {studentDetails.personal.socialMedia && (
+                          <div>
+                            <p className="text-sm text-muted-foreground">Social Media</p>
+                            <a 
+                              href={studentDetails.personal.socialMedia} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="font-medium text-blue-600 hover:underline flex items-center"
+                            >
+                              {studentDetails.personal.socialMedia}
+                              <Instagram className="h-3 w-3 ml-1" />
+                            </a>
+                          </div>
+                        )}
                         <div>
                           <p className="text-sm text-muted-foreground">Last Updated</p>
                           <p className="font-medium">
@@ -318,6 +350,18 @@ export default function StudentLookupPage() {
                           <p className="text-sm text-muted-foreground">ARMIET PIN</p>
                           <p className="font-medium">{studentDetails.academic.armietPin || "Not provided"}</p>
                         </div>
+                        {studentDetails.academic.previousSemesterGrades && (
+                          <div className="col-span-2">
+                            <p className="text-sm text-muted-foreground">Previous Semester Grades</p>
+                            <p className="font-medium whitespace-pre-line">{studentDetails.academic.previousSemesterGrades}</p>
+                          </div>
+                        )}
+                        {studentDetails.academic.backlogs && (
+                          <div className="col-span-2">
+                            <p className="text-sm text-muted-foreground">Backlogs/ATKT</p>
+                            <p className="font-medium whitespace-pre-line">{studentDetails.academic.backlogs}</p>
+                          </div>
+                        )}
                         <div>
                           <p className="text-sm text-muted-foreground">Last Updated</p>
                           <p className="font-medium">

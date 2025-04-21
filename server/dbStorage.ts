@@ -552,6 +552,8 @@ export class DbStorage implements IStorage {
         email: details.email,
         address: details.address,
         linkedin: details.linkedin,
+        github: details.github,
+        socialMedia: details.socialMedia,
       };
       
       if (existing) {
@@ -594,6 +596,8 @@ export class DbStorage implements IStorage {
         academicYear: details.academicYear,
         percentage: details.percentage,
         armietPin: details.armietPin,
+        previousSemesterGrades: details.previousSemesterGrades,
+        backlogs: details.backlogs,
       };
       
       if (existing) {

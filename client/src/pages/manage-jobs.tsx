@@ -144,6 +144,19 @@ export default function ManageJobs() {
                             />
                           </div>
                           <div>
+                            <Label htmlFor="contactDetails">Contact Details</Label>
+                            <Textarea
+                              id="contactDetails"
+                              value={selectedJob?.contactDetails || ""}
+                              placeholder="e.g. Email: jobs@company.com, Phone: 123-456-7890"
+                              onChange={(e) =>
+                                setSelectedJob(prev =>
+                                  prev ? { ...prev, contactDetails: e.target.value } : null
+                                )
+                              }
+                            />
+                          </div>
+                          <div>
                             <Label htmlFor="type">Type</Label>
                             <Select
                               value={selectedJob?.type}
@@ -184,7 +197,7 @@ export default function ManageJobs() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-gray-600 mb-2">{job.description}</p>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 flex-wrap">
                   <span className="text-sm text-gray-600">{job.company}</span>
                   <span className="text-sm font-medium">
                     {job.type === "fulltime" ? "Full Time" : "Internship"}
@@ -192,6 +205,11 @@ export default function ManageJobs() {
                   {job.salary && (
                     <span className="text-sm text-gray-600">
                       Salary: {job.salary}
+                    </span>
+                  )}
+                  {job.contactDetails && (
+                    <span className="text-sm text-gray-600">
+                      Contact Available
                     </span>
                   )}
                 </div>
