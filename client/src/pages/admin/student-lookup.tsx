@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Search, User, GraduationCap, Link as LinkIcon, Github, Instagram } from "lucide-react";
+import { Loader2, Search, User, GraduationCap, Link as LinkIcon, Github, Instagram, Image } from "lucide-react";
 import { useLocation } from "wouter";
 import { Navbar } from "@/components/nav/navbar";
 import { useToast } from "@/hooks/use-toast";
@@ -49,9 +49,40 @@ export interface StudentDetails {
     linkedin: string;
     github: string;
     socialMedia: string;
+    imagePath: string;
     updatedAt: string;
   };
 }
+
+// Helper function to correct image paths
+const getImageUrl = (imagePath: string | null | undefined): string | undefined => {
+  if (!imagePath) return undefined;
+  
+  console.log("Original image path:", imagePath);
+  
+  // Normalize path separators
+  const normalizedPath = imagePath.replace(/\\/g, '/');
+  console.log("Normalized path:", normalizedPath);
+  
+  // Handle full paths that include the uploads directory
+  if (normalizedPath.includes('/uploads/')) {
+    const pathAfterUploads = normalizedPath.split('/uploads/')[1];
+    console.log("Path after /uploads/:", pathAfterUploads);
+    return `/uploads/${pathAfterUploads}`;
+  }
+  
+  // Handle paths that are direct file paths
+  if (normalizedPath.includes('/student-photos/')) {
+    const parts = normalizedPath.split('/student-photos/');
+    console.log("Path after /student-photos/:", parts[1]);
+    return `/uploads/student-photos/${parts[1]}`;
+  }
+  
+  // For cases where the path is just a filename or partial path
+  const filename = normalizedPath.split('/').pop() || normalizedPath;
+  console.log("Extracted filename:", filename);
+  return `/uploads/student-photos/${filename}`;
+};
 
 export default function StudentLookupPage() {
   const [, setLocation] = useLocation();
@@ -222,26 +253,70 @@ export default function StudentLookupPage() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Full Name</p>
-                        <p className="font-medium">{studentDetails.user.fullName}</p>
+                    <div className="flex flex-col md:flex-row gap-6">
+                      {/* Student Photo */}
+                      <div className="flex-shrink-0">
+                        {studentDetails.personal?.imagePath ? (
+                          <div className="w-40 h-48 border rounded-md overflow-hidden">
+                            <img 
+                              src={getImageUrl(studentDetails.personal.imagePath)} 
+                              alt={`${studentDetails.user.fullName}'s photo`}
+                              className="w-full h-full object-cover"
+                              onLoad={(e) => console.log("Image loaded successfully:", e.currentTarget.src)}
+                              onError={(e) => {
+                                // Log detailed error information
+                                console.error("Image failed to load:", {
+                                  originalPath: studentDetails.personal?.imagePath,
+                                  processedPath: e.currentTarget.src,
+                                  error: e
+                                });
+                                
+                                // Hide the image if it fails to load
+                                e.currentTarget.style.display = 'none';
+                                e.currentTarget.parentElement!.innerHTML = `
+                                  <div class="w-full h-full flex flex-col items-center justify-center bg-gray-50 p-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-300 mb-2">
+                                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                      <circle cx="12" cy="7" r="4"></circle>
+                                    </svg>
+                                    <p class="text-xs text-gray-400 text-center">Image failed to load</p>
+                                  </div>
+                                `;
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-40 h-48 border rounded-md flex flex-col items-center justify-center bg-gray-50">
+                            <Image className="h-10 w-10 text-gray-300 mb-2" />
+                            <p className="text-sm text-gray-400">No photo</p>
+                          </div>
+                        )}
                       </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Username</p>
-                        <p className="font-medium">{studentDetails.user.username}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Email</p>
-                        <p className="font-medium">{studentDetails.user.email}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Phone</p>
-                        <p className="font-medium">{studentDetails.user.phone}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">ID</p>
-                        <p className="font-medium">{studentDetails.user.id}</p>
+                      
+                      {/* Student Details */}
+                      <div className="flex-1">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-sm text-muted-foreground">Full Name</p>
+                            <p className="font-medium">{studentDetails.user.fullName}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Username</p>
+                            <p className="font-medium">{studentDetails.user.username}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Email</p>
+                            <p className="font-medium">{studentDetails.user.email}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Phone</p>
+                            <p className="font-medium">{studentDetails.user.phone}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">ID</p>
+                            <p className="font-medium">{studentDetails.user.id}</p>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </CardContent>

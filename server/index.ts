@@ -2,6 +2,8 @@ import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import fs from 'fs';
+import path from 'path';
 
 const app = express();
 app.use(express.json());
@@ -36,6 +38,33 @@ app.use((req, res, next) => {
 
   next();
 });
+
+// Ensure uploads directories exist
+const uploadsDir = path.join(process.cwd(), "uploads");
+const studentPhotosDir = path.join(uploadsDir, "student-photos");
+const jobImagesDir = path.join(uploadsDir, "job-images");
+const resumesDir = path.join(uploadsDir, "resumes");
+
+// Create directories if they don't exist
+if (!fs.existsSync(uploadsDir)) {
+  console.log(`Creating uploads directory: ${uploadsDir}`);
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+if (!fs.existsSync(studentPhotosDir)) {
+  console.log(`Creating student-photos directory: ${studentPhotosDir}`);
+  fs.mkdirSync(studentPhotosDir, { recursive: true });
+}
+
+if (!fs.existsSync(jobImagesDir)) {
+  console.log(`Creating job-images directory: ${jobImagesDir}`);
+  fs.mkdirSync(jobImagesDir, { recursive: true });
+}
+
+if (!fs.existsSync(resumesDir)) {
+  console.log(`Creating resumes directory: ${resumesDir}`);
+  fs.mkdirSync(resumesDir, { recursive: true });
+}
 
 (async () => {
   const server = await registerRoutes(app);

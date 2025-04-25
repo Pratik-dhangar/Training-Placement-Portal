@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Download, Search, ExternalLink } from "lucide-react";
+import { Loader2, Download, Search, ExternalLink, User } from "lucide-react";
 import { useRouter } from "next/router";
 import { AdminNavbar } from "@/components/nav/admin-navbar";
 import { useState } from "react";
@@ -41,9 +41,40 @@ interface StudentDetails {
   personalDetails?: {
     address: string;
     linkedin: string;
+    imagePath: string;
     updatedAt: string;
   };
 }
+
+// Helper function to correct image paths
+const getImageUrl = (imagePath: string | null | undefined): string | undefined => {
+  if (!imagePath) return undefined;
+  
+  console.log("Original image path:", imagePath);
+  
+  // Normalize path separators
+  const normalizedPath = imagePath.replace(/\\/g, '/');
+  console.log("Normalized path:", normalizedPath);
+  
+  // Handle full paths that include the uploads directory
+  if (normalizedPath.includes('/uploads/')) {
+    const pathAfterUploads = normalizedPath.split('/uploads/')[1];
+    console.log("Path after /uploads/:", pathAfterUploads);
+    return `/uploads/${pathAfterUploads}`;
+  }
+  
+  // Handle paths that are direct file paths
+  if (normalizedPath.includes('/student-photos/')) {
+    const parts = normalizedPath.split('/student-photos/');
+    console.log("Path after /student-photos/:", parts[1]);
+    return `/uploads/student-photos/${parts[1]}`;
+  }
+  
+  // For cases where the path is just a filename or partial path
+  const filename = normalizedPath.split('/').pop() || normalizedPath;
+  console.log("Extracted filename:", filename);
+  return `/uploads/student-photos/${filename}`;
+};
 
 export default function StudentsPage() {
   const router = useRouter();
@@ -186,6 +217,7 @@ export default function StudentsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>Photo</TableHead>
                       <TableHead>Name</TableHead>
                       <TableHead>Contact</TableHead>
                       <TableHead>Program</TableHead>
@@ -196,6 +228,26 @@ export default function StudentsPage() {
                   <TableBody>
                     {filteredStudents.map((student) => (
                       <TableRow key={student.id}>
+                        <TableCell>
+                          {student.personalDetails?.imagePath ? (
+                            <div className="w-12 h-12 rounded-full overflow-hidden">
+                              <img 
+                                src={getImageUrl(student.personalDetails.imagePath)} 
+                                alt={`${student.name}'s photo`}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  // Replace with placeholder icon if image fails to load
+                                  e.currentTarget.style.display = 'none';
+                                  e.currentTarget.parentElement!.innerHTML = '<div class="w-full h-full flex items-center justify-center bg-gray-100"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></div>';
+                                }}
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-12 h-12 rounded-full flex items-center justify-center bg-gray-100">
+                              <User className="h-6 w-6 text-gray-400" />
+                            </div>
+                          )}
+                        </TableCell>
                         <TableCell className="font-medium">{student.name || "N/A"}</TableCell>
                         <TableCell>
                           <div className="space-y-1">

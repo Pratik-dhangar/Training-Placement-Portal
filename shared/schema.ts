@@ -35,6 +35,7 @@ export const personalDetails = pgTable("personal_details", {
   linkedin: text("linkedin"),
   github: text("github"),
   socialMedia: text("social_media"),
+  imagePath: text("image_path"),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
@@ -90,6 +91,7 @@ export const insertPersonalDetailsSchema = createInsertSchema(personalDetails).p
   linkedin: true,
   github: true,
   socialMedia: true,
+  imagePath: true,
 });
 
 export const insertJobSchema = createInsertSchema(jobs).pick({

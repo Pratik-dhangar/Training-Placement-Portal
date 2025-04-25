@@ -6,6 +6,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import express from "express";
+import { join } from "path";
 
 // Configure uploads
 const uploadsDir = path.join(process.cwd(), "uploads");
@@ -21,6 +22,23 @@ const jobImageUpload = multer({
   },
   fileFilter: (_req, file, cb) => {
     const allowedTypes = [".jpg", ".jpeg", ".png", ".gif"];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowedTypes.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Invalid image file type"));
+    }
+  },
+});
+
+// student photo upload
+const studentPhotoUpload = multer({
+  dest: path.join(uploadsDir, "student-photos"),
+  limits: {
+    fileSize: 2 * 1024 * 1024, // 2MB limit for images
+  },
+  fileFilter: (_req, file, cb) => {
+    const allowedTypes = [".jpg", ".jpeg", ".png"];
     const ext = path.extname(file.originalname).toLowerCase();
     if (allowedTypes.includes(ext)) {
       cb(null, true);
@@ -53,6 +71,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Serve uploaded files with improved logging
   app.use("/uploads", (req, res, next) => {
     console.log(`Static file request: ${req.path}`);
+    
+    // Log more details about the request
+    console.log({
+      originalUrl: req.originalUrl,
+      path: req.path,
+      baseUrl: req.baseUrl,
+      fullPath: join(uploadsDir, req.path)
+    });
+    
+    // Check if the file exists before trying to serve it
+    const filePath = join(uploadsDir, req.path);
+    if (!fs.existsSync(filePath)) {
+      console.error(`File not found: ${filePath}`);
+      return res.status(404).send("File not found");
+    }
+    
     express.static(uploadsDir)(req, res, (err) => {
       if (err) {
         console.error(`Error serving static file: ${req.path}`, err);
@@ -512,7 +546,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/users/:userId/personal-details", async (req, res, next) => {
+  app.patch("/api/users/:userId/personal-details", studentPhotoUpload.single("studentPhoto"), async (req, res, next) => {
     try {
       // Check if the user is authenticated and authorized
       if (!req.user) {
@@ -520,6 +554,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const userId = parseInt(req.params.userId);
+      
+      // Log debug info
+      console.log("Updating personal details for user ID:", userId);
+      console.log("Request body:", req.body);
+      console.log("File uploaded:", req.file);
       
       // Admin can update any user's details, but students can only update their own
       if (req.user.role !== "admin" && req.user.id !== userId) {
@@ -529,17 +568,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Extract details from request body
       const { phone, email, address, linkedin, github, socialMedia } = req.body;
       
-      // Update personal details
-      const details = await storage.updatePersonalDetails(userId.toString(), {
+      // Prepare details object
+      const details = {
         phone, 
         email, 
         address, 
         linkedin,
         github,
         socialMedia
-      });
+      };
+
+      // Add image path if a file was uploaded
+      if (req.file) {
+        console.log("Processing uploaded photo:", req.file.path);
+        
+        // Make sure path is normalized for storage
+        const normalizedPath = req.file.path.replace(/\\/g, '/');
+        console.log("Normalized path:", normalizedPath);
+        
+        details.imagePath = normalizedPath;
+      }
       
-      res.json(details);
+      console.log("Updating personal details with:", details);
+      
+      // Update personal details
+      const updatedDetails = await storage.updatePersonalDetails(userId.toString(), details);
+      
+      console.log("Updated personal details result:", updatedDetails);
+      
+      res.json(updatedDetails);
     } catch (err) {
       console.error("Error updating personal details:", err);
       next(err);
@@ -557,12 +614,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get all students
       const students = await storage.getAllStudents();
+      console.log(`Found ${students.length} students`);
 
       // Get personal and academic details for each student
       const studentsWithDetails = await Promise.all(
         students.map(async (student) => {
           const personalDetails = await storage.getPersonalDetails(student.id);
           const academicDetails = await storage.getAcademicDetails(student.id);
+          
+          console.log(`Student ${student.id} personal details:`, personalDetails);
           
           // Transform snake_case to camelCase for academicDetails
           const formattedAcademicDetails = academicDetails ? {
@@ -583,6 +643,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             linkedin: personalDetails.linkedin,
             github: personalDetails.github,
             socialMedia: personalDetails.socialMedia,
+            imagePath: personalDetails.imagePath, // Include the image path
             updatedAt: personalDetails.updatedAt || new Date().toISOString()
           } : null;
           

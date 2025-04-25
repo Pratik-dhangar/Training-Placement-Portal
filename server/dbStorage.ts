@@ -545,6 +545,9 @@ export class DbStorage implements IStorage {
       // Check if personal details already exist
       const existing = await this.getPersonalDetails(id);
       
+      console.log("Updating personal details for user:", userId);
+      console.log("Received details:", details);
+      
       // Prepare data with proper field names for database (camelCase to snake_case)
       const dbData = {
         userId,
@@ -554,7 +557,10 @@ export class DbStorage implements IStorage {
         linkedin: details.linkedin,
         github: details.github,
         socialMedia: details.socialMedia,
+        imagePath: details.imagePath
       };
+      
+      console.log("Prepared database data:", dbData);
       
       if (existing) {
         // Update existing record
@@ -564,6 +570,7 @@ export class DbStorage implements IStorage {
           .where(eq(personalDetails.userId, userId))
           .returning();
         
+        console.log("Updated personal details:", result[0]);
         return result[0];
       } else {
         // Create new record
@@ -572,6 +579,7 @@ export class DbStorage implements IStorage {
           .values(dbData)
           .returning();
         
+        console.log("Created new personal details:", result[0]);
         return result[0];
       }
     } catch (error) {

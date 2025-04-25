@@ -24,6 +24,7 @@ interface AcceptedApplicant {
   phone: string;
   jobTitle: string;
   company: string;
+  resumePath: string;
 }
 
 export default function ReviewJobs() {
@@ -138,7 +139,8 @@ export default function ReviewJobs() {
         email: app.user?.email || "No email",
         phone: app.user?.phone || "No phone",
         jobTitle: job.title,
-        company: job.company
+        company: job.company,
+        resumePath: app.resumePath || ""
       }));
 
     setAcceptedApplicants(acceptedList);
@@ -162,10 +164,23 @@ export default function ReviewJobs() {
     
     // Create a string with the data
     let content = `Accepted Applicants for ${job?.title} at ${job?.company}\n\n`;
-    content += "Name\tEmail\tPhone\n";
+    content += "Name\tEmail\tPhone\tResume URL\n";
     
     acceptedApplicants.forEach(applicant => {
-      content += `${applicant.name}\t${applicant.email}\t${applicant.phone}\n`;
+      // Extract just the filename from the path
+      let resumeFilename = "N/A";
+      if (applicant.resumePath) {
+        if (applicant.resumePath.includes('/') || applicant.resumePath.includes('\\')) {
+          const pathParts = applicant.resumePath.split(/[\/\\]/);
+          resumeFilename = pathParts[pathParts.length - 1];
+        } else {
+          resumeFilename = applicant.resumePath;
+        }
+      }
+      const resumeUrl = resumeFilename !== "N/A" ? 
+        `${window.location.origin}/api/applications/resume/${resumeFilename}` : "N/A";
+      
+      content += `${applicant.name}\t${applicant.email}\t${applicant.phone}\t${resumeUrl}\n`;
     });
     
     // Create a Blob with the content
@@ -206,10 +221,23 @@ export default function ReviewJobs() {
     const job = jobs?.find(j => j.id === selectedJobId);
     
     // Create a CSV string
-    let csv = "Name,Email,Phone\n";
+    let csv = "Name,Email,Phone,Resume URL\n";
     
     acceptedApplicants.forEach(applicant => {
-      csv += `"${applicant.name}","${applicant.email}","${applicant.phone}"\n`;
+      // Extract just the filename from the path
+      let resumeFilename = "N/A";
+      if (applicant.resumePath) {
+        if (applicant.resumePath.includes('/') || applicant.resumePath.includes('\\')) {
+          const pathParts = applicant.resumePath.split(/[\/\\]/);
+          resumeFilename = pathParts[pathParts.length - 1];
+        } else {
+          resumeFilename = applicant.resumePath;
+        }
+      }
+      const resumeUrl = resumeFilename !== "N/A" ? 
+        `${window.location.origin}/api/applications/resume/${resumeFilename}` : "N/A";
+      
+      csv += `"${applicant.name}","${applicant.email}","${applicant.phone}","${resumeUrl}"\n`;
     });
     
     // Create a Blob with the CSV content
