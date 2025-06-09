@@ -1,4 +1,4 @@
-# TP Portal
+# Training & Placement Portal
 
 A full-stack Training and Placement Portal to manage student, company, and placement activities.
 
@@ -18,7 +18,7 @@ A full-stack Training and Placement Portal to manage student, company, and place
 
 ## About
 
-**TP Portal** is a web application designed to streamline the training and placement process for educational institutions. It provides interfaces for students, companies, and administrators to manage placement activities efficiently.
+**T&P Portal** is a web application designed to streamline the training and placement process for educational institutions. It provides interfaces for students, companies, and administrators to manage placement activities efficiently.
 
 ## Features
 
