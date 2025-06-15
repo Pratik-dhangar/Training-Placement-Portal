@@ -122,9 +122,5 @@ Common scripts (see `package.json` for more):
 
 Contributions are welcome! Please open issues or submit pull requests for improvements and bug fixes.
 
-## License
-
-[MIT](LICENSE) (or specify your license)
-
 ---
 
