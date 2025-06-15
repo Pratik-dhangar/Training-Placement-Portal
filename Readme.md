@@ -58,7 +58,7 @@ tp portal/
 ## 📸 UI Preview
 
 ### 🔍 Student Login
-![View Job](./assets/screenshots/viewjobs.png)
+![View Job](./assets/screenshots/Admin.png)
 
 ## Getting Started
 
