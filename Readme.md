@@ -60,8 +60,17 @@ tp portal/
 ### 🔍 Student Login
 ![View Job](./assets/screenshots/Jobs.png)
 
+### 🔍 Student Login
+![Apply Job](./assets/screenshots/Apply.png)
+
 ### 🔍 Admin Login
 ![DashBoard](./assets/screenshots/Admin.png)
+
+### 🔍 Admin Login
+![review Applications](./assets/screenshots/ViewApplications.png)
+
+### 🔍 Admin Login
+![Student Profile Lookup](./assets/screenshots/Lookup.png)
 
 ## Getting Started
 
