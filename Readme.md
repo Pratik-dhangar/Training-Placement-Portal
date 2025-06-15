@@ -8,6 +8,7 @@ A full-stack Training and Placement Portal to manage student, company, and place
 - [Features](#features)
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
+- UI Preview
 - [Getting Started](#getting-started)
 - [Scripts](#scripts)
 - [Configuration](#configuration)
@@ -54,6 +55,10 @@ tp portal/
 ├── vite.config.ts
 └── theme.json
 ```
+## 📸 UI Preview
+
+###  Student Login
+![View Job](./client/public/View-jobs.png)
 
 ## Getting Started
 
