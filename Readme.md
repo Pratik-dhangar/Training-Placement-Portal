@@ -8,7 +8,7 @@ A full-stack Training and Placement Portal to manage student, company, and place
 - [Features](#features)
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
-- UI Preview
+- .[UI Preview](#ui-preview)
 - [Getting Started](#getting-started)
 - [Scripts](#scripts)
 - [Configuration](#configuration)
@@ -57,8 +57,8 @@ tp portal/
 ```
 ## 📸 UI Preview
 
-###  Student Login
-![View Job](./client/public/View-jobs.png)
+### 🔍 Student Login
+![View Job](client/public/View Jobs.png)
 
 ## Getting Started
 
