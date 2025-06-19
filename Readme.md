@@ -34,7 +34,7 @@ A full-stack Training and Placement Portal to manage student, company, and place
 
 - **Frontend:** React (Vite), Tailwind CSS
 - **Backend:** Node.js, Express (in `server/`)
-- **Database:** (Specify your DB, e.g., PostgreSQL, MySQL, SQLite)
+- **Database:** PostgreSQL
 - **ORM:** Drizzle
 - **Other:** TypeScript, PostCSS
 
